@@ -1,5 +1,10 @@
 {
   "buildCommand": "npm run build",
-  "outputDirectory": "dist",
-  "serverlessFunctionRegion": "us-east-1"
+  "outputDirectory": "dist/client",
+  "routes": [
+    {
+      "src": "/(.*)",
+      "dest": "/index.html"
+    }
+  ]
 }
