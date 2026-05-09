@@ -12,16 +12,50 @@ export default function Header() {
           <Link to="/" className="flex items-center gap-3">
             <img src={churchLogo} alt="Winners Chapel Logo" className="h-10 w-10 md:h-12 md:w-12" />
             <div>
-              <span className="font-heading text-lg md:text-xl font-bold text-foreground leading-tight block">Winners Chapel</span>
+              <span className="font-heading text-lg md:text-xl font-bold text-foreground leading-tight block">
+                Winners Chapel
+              </span>
               <span className="text-xs text-muted-foreground">Dar es Salaam</span>
             </div>
           </Link>
 
           <nav className="hidden md:flex items-center gap-8">
-            <Link to="/" className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors" activeProps={{ className: "text-primary font-semibold" }}>Home</Link>
-            <Link to="/about" className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors" activeProps={{ className: "text-primary font-semibold" }}>About</Link>
-            <Link to="/services" className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors" activeProps={{ className: "text-primary font-semibold" }}>Services</Link>
-            <Link to="/contact" className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors" activeProps={{ className: "text-primary font-semibold" }}>Contact</Link>
+            <Link
+              to="/"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              activeProps={{ className: "text-primary font-semibold" }}
+            >
+              Home
+            </Link>
+            <Link
+              to="/about"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              activeProps={{ className: "text-primary font-semibold" }}
+            >
+              About
+            </Link>
+            <Link
+              to="/services"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              activeProps={{ className: "text-primary font-semibold" }}
+            >
+              Services
+            </Link>
+            <Link
+              to="/contact"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+              activeProps={{ className: "text-primary font-semibold" }}
+            >
+              Contact
+            </Link>
+            <a
+              href="https://imc.faithtabernacle.org.ng/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors"
+            >
+              Main Church
+            </a>
           </nav>
 
           <button
@@ -30,9 +64,35 @@ export default function Header() {
             aria-label="Toggle menu"
           >
             {menuOpen ? (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M6 18L18 6M6 6l12 12"
+                />
+              </svg>
             ) : (
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" /></svg>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-6 w-6"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M4 6h16M4 12h16M4 18h16"
+                />
+              </svg>
             )}
           </button>
         </div>
@@ -41,10 +101,42 @@ export default function Header() {
       {menuOpen && (
         <div className="md:hidden bg-background border-t border-border">
           <nav className="flex flex-col px-4 py-4 gap-3">
-            <Link to="/" className="text-sm font-medium py-2 text-foreground hover:text-primary" onClick={() => setMenuOpen(false)}>Home</Link>
-            <Link to="/about" className="text-sm font-medium py-2 text-foreground hover:text-primary" onClick={() => setMenuOpen(false)}>About</Link>
-            <Link to="/services" className="text-sm font-medium py-2 text-foreground hover:text-primary" onClick={() => setMenuOpen(false)}>Services</Link>
-            <Link to="/contact" className="text-sm font-medium py-2 text-foreground hover:text-primary" onClick={() => setMenuOpen(false)}>Contact</Link>
+            <Link
+              to="/"
+              className="text-sm font-medium py-2 text-foreground hover:text-primary"
+              onClick={() => setMenuOpen(false)}
+            >
+              Home
+            </Link>
+            <Link
+              to="/about"
+              className="text-sm font-medium py-2 text-foreground hover:text-primary"
+              onClick={() => setMenuOpen(false)}
+            >
+              About
+            </Link>
+            <Link
+              to="/services"
+              className="text-sm font-medium py-2 text-foreground hover:text-primary"
+              onClick={() => setMenuOpen(false)}
+            >
+              Services
+            </Link>
+            <Link
+              to="/contact"
+              className="text-sm font-medium py-2 text-foreground hover:text-primary"
+              onClick={() => setMenuOpen(false)}
+            >
+              Contact
+            </Link>
+            <a
+              href="https://imc.faithtabernacle.org.ng/"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="text-sm font-medium py-2 text-foreground hover:text-primary"
+            >
+              Main Church
+            </a>
           </nav>
         </div>
       )}
