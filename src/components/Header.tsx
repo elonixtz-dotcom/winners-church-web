@@ -2,10 +2,13 @@ import { Link } from "@tanstack/react-router";
 import { useState, useEffect } from "react";
 import churchLogo from "@/assets/winners-logo.png";
 import { db, UserProfile } from "@/lib/db";
+import AuthModal from "@/components/AuthModal";
 
 export default function Header() {
   const [menuOpen, setMenuOpen] = useState(false);
   const [user, setUser] = useState<UserProfile | null>(null);
+  const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
+  const [authDefaultTab, setAuthDefaultTab] = useState<"signin" | "signup">("signup");
 
   // Check login state to toggle Login button to Dashboard link dynamically
   useEffect(() => {
@@ -102,12 +105,15 @@ export default function Header() {
                 Go to Dashboard
               </Link>
             ) : (
-              <Link
-                to="/login"
-                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/95 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2"
+              <button
+                onClick={() => {
+                  setAuthDefaultTab("signup");
+                  setIsAuthModalOpen(true);
+                }}
+                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/95 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer"
               >
-                Login
-              </Link>
+                Join Now
+              </button>
             )}
           </div>
 
@@ -230,17 +236,25 @@ export default function Header() {
                 Go to Dashboard
               </Link>
             ) : (
-              <Link
-                to="/login"
-                className="text-sm font-semibold py-2.5 px-3 rounded-lg bg-primary text-primary-foreground text-center shadow-md transition-colors"
-                onClick={() => setMenuOpen(false)}
+              <button
+                onClick={() => {
+                  setMenuOpen(false);
+                  setAuthDefaultTab("signup");
+                  setIsAuthModalOpen(true);
+                }}
+                className="text-sm font-semibold py-2.5 px-3 rounded-lg bg-primary text-primary-foreground text-center shadow-md transition-colors cursor-pointer w-full"
               >
-                Login
-              </Link>
+                Join Now
+              </button>
             )}
           </nav>
         </div>
       )}
+      <AuthModal
+        isOpen={isAuthModalOpen}
+        onOpenChange={setIsAuthModalOpen}
+        defaultTab={authDefaultTab}
+      />
     </header>
   );
 }
