@@ -6,15 +6,15 @@
 -- Enable UUID extension if not enabled
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
--- Clean existing tables if needed (uncomment if doing a fresh reset)
--- DROP TABLE IF EXISTS weekly_reports;
--- DROP TABLE IF EXISTS announcements;
--- DROP TABLE IF EXISTS events;
--- DROP TABLE IF EXISTS visitors;
--- DROP TABLE IF EXISTS attendance;
--- DROP TABLE IF EXISTS members;
--- DROP TABLE IF EXISTS home_cells;
--- DROP TABLE IF EXISTS users;
+-- Clean existing tables if needed (doing a fresh reset)
+DROP TABLE IF EXISTS weekly_reports;
+DROP TABLE IF EXISTS announcements;
+DROP TABLE IF EXISTS events;
+DROP TABLE IF EXISTS visitors;
+DROP TABLE IF EXISTS attendance;
+DROP TABLE IF EXISTS members;
+DROP TABLE IF EXISTS home_cells;
+DROP TABLE IF EXISTS users;
 
 -- =========================================================================
 -- 1. USERS TABLE (Profiles connected to Supabase Auth)
