@@ -32,3 +32,6 @@ dist-ssr
 *.sw?
 
 .workspace/
+.vercel
+.env
+.env.*
