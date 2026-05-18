@@ -17,8 +17,9 @@ function LoginPage() {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [role, setRole] = useState<"pastor_admin" | "media_team" | "cell_leader">("pastor_admin");
-  const [fullName, setFullName] = useState(""); // For new registrations if any, but let's keep it simple
+  const [role, setRole] = useState<"pastor_admin" | "media_team" | "cell_leader" >("pastor_admin");
+  const [fullName, setFullName] = useState("");
+  const [isRegistering, setIsRegistering] = useState(false);
   const [rememberMe, setRememberMe] = useState(false);
   const [loading, setLoading] = useState(false);
 
@@ -35,8 +36,8 @@ function LoginPage() {
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password) {
-      toast.error("Please fill in all credentials fields.");
+    if (!email || !password || (isRegistering && !fullName)) {
+      toast.error("Please fill in all required fields.");
       return;
     }
 
@@ -45,20 +46,14 @@ function LoginPage() {
     try {
       if (isSupabaseConfigured && supabase) {
         // Real Supabase Auth Flow
-        // Bypass email confirmation triggers by signing up and signing in directly
-        const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
-          email,
-          password,
-        });
-
-        if (signInError) {
-          // If user doesn't exist, try auto-registering them for a seamless direct access experience
+        if (isRegistering) {
+          // User Registration Flow
           const { data: signUpData, error: signUpError } = await supabase.auth.signUp({
             email,
             password,
             options: {
               data: {
-                full_name: email.split("@")[0].toUpperCase(),
+                full_name: fullName,
                 role: role,
               }
             }
@@ -68,7 +63,6 @@ function LoginPage() {
             throw new Error(signUpError.message);
           }
 
-          // If signed up, immediately sign them in (no email verification required)
           if (signUpData.user) {
             const isApproved = role !== "cell_leader";
             // Create user profile record in public.users table
@@ -77,7 +71,7 @@ function LoginPage() {
               .insert([
                 {
                   id: signUpData.user.id,
-                  full_name: email.split("@")[0].toUpperCase(),
+                  full_name: fullName,
                   email: email,
                   role: role,
                   is_approved: isApproved,
@@ -91,64 +85,114 @@ function LoginPage() {
 
             if (!isApproved) {
               await supabase.auth.signOut();
-              throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
+              toast.success("Account request submitted successfully! Pending Pastor approval.");
+              setIsRegistering(false);
+              setFullName("");
+              setEmail("");
+              setPassword("");
+            } else {
+              // Auto sign in for pastor/media
+              const { error: signInErr } = await supabase.auth.signInWithPassword({
+                email,
+                password,
+              });
+              if (signInErr) throw signInErr;
+              toast.success("Registration successful! Logging you in...");
+              setTimeout(() => {
+                navigate({ to: "/dashboard" });
+              }, 800);
             }
-
-            // Perform automatic sign in
-            const { error: secondSignInError } = await supabase.auth.signInWithPassword({
-              email,
-              password,
-            });
-            
-            if (secondSignInError) throw secondSignInError;
           }
         } else {
-          // Check approval status for existing users
+          // Strict Sign In Flow
+          const { data: signInData, error: signInError } = await supabase.auth.signInWithPassword({
+            email,
+            password,
+          });
+
+          if (signInError) {
+            throw new Error("Invalid login credentials. Please register your account first!");
+          }
+
+          // Fetch user profile
           const { data: profile, error: profileErr } = await supabase
             .from("users")
             .select("role, is_approved")
             .eq("id", signInData.user.id)
             .single();
 
-          if (!profileErr && profile) {
-            if (profile.role === "cell_leader" && !profile.is_approved) {
-              await supabase.auth.signOut();
-              throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
-            }
+          if (profileErr || !profile) {
+            await supabase.auth.signOut();
+            throw new Error("Your user profile was not found. Please register a new account.");
           }
+
+          if (profile.role === "cell_leader" && !profile.is_approved) {
+            await supabase.auth.signOut();
+            throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
+          }
+
+          toast.success("Welcome back! Login successful.");
+          setTimeout(() => {
+            navigate({ to: "/dashboard" });
+          }, 800);
         }
       } else {
-        // Fallback Local Storage Auth Flow (Dynamic Login)
-        // Store session directly using localStorage mockDb
+        // Fallback Local Storage Auth Flow (Explicit DB Behavior with NO auto mock login)
         const mockUsersList = JSON.parse(localStorage.getItem("winners_church_users") || "[]");
-        let existingUser = mockUsersList.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+        
+        if (isRegistering) {
+          // Registration Flow
+          const existingUser = mockUsersList.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+          if (existingUser) {
+            throw new Error("An account with this email address already exists! Please Sign In.");
+          }
 
-        if (!existingUser) {
           const isApproved = role !== "cell_leader";
-          existingUser = {
+          const newUser = {
             id: crypto.randomUUID(),
-            full_name: email.split("@")[0].toUpperCase().replace(".", " "),
+            full_name: fullName,
             email: email,
             role: role,
             is_approved: isApproved,
             created_at: new Date().toISOString(),
           };
-          mockUsersList.push(existingUser);
+
+          mockUsersList.push(newUser);
           localStorage.setItem("winners_church_users", JSON.stringify(mockUsersList));
-        }
 
-        if (existingUser.role === "cell_leader" && !existingUser.is_approved) {
-          throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
-        }
+          if (!isApproved) {
+            toast.success("Access requested successfully! Please wait for Pastor's approval.");
+            setIsRegistering(false);
+            setFullName("");
+            setEmail("");
+            setPassword("");
+          } else {
+            db.logout();
+            localStorage.setItem("winners_church_session", JSON.stringify(newUser));
+            toast.success("Registration successful! Logging you in...");
+            setTimeout(() => {
+              navigate({ to: "/dashboard" });
+            }, 800);
+          }
+        } else {
+          // Strict Login Flow
+          const existingUser = mockUsersList.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+          if (!existingUser) {
+            throw new Error("Account not found. Please click 'Register' at the bottom to sign up first!");
+          }
 
-        db.logout(); // Clear previous session
-        localStorage.setItem("winners_church_session", JSON.stringify(existingUser));
+          if (existingUser.role === "cell_leader" && !existingUser.is_approved) {
+            throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
+          }
+
+          db.logout(); // Clear previous session
+          localStorage.setItem("winners_church_session", JSON.stringify(existingUser));
+          toast.success("Welcome back! Login successful.");
+          setTimeout(() => {
+            navigate({ to: "/dashboard" });
+          }, 800);
+        }
       }
-
-      toast.success("Welcome! Login successful.");
-      setTimeout(() => {
-        navigate({ to: "/dashboard" });
-      }, 800);
     } catch (err: any) {
       toast.error(err.message || "Authentication failed. Try again.");
     } finally {
@@ -162,7 +206,9 @@ function LoginPage() {
         {/* Brand Header */}
         <div className="text-center mb-8">
           <img src={churchLogo} alt="Winners Chapel Int." className="h-16 w-16 mx-auto mb-4 object-contain" />
-          <h2 className="font-heading text-2xl font-bold text-foreground">Sign In to Portal</h2>
+          <h2 className="font-heading text-2xl font-bold text-foreground">
+            {isRegistering ? "Create Portal Account" : "Sign In to Portal"}
+          </h2>
           <p className="text-xs text-muted-foreground mt-2 max-w-xs leading-relaxed">
             Winners Chapel International Ukonga Banana Church Management System
           </p>
@@ -170,6 +216,24 @@ function LoginPage() {
 
         {/* Credentials Form */}
         <form className="w-full space-y-5" onSubmit={handleLogin}>
+          {/* Full name input (Only during registration) */}
+          {isRegistering && (
+            <div>
+              <label htmlFor="fullName" className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
+                Full Name
+              </label>
+              <input
+                id="fullName"
+                type="text"
+                required
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                className="w-full rounded-lg border border-border bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
+                placeholder="e.g. Deacon Charles Mushi"
+              />
+            </div>
+          )}
+
           {/* Email input */}
           <div>
             <label htmlFor="email" className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5">
@@ -202,11 +266,11 @@ function LoginPage() {
             />
           </div>
 
-          {/* Dynamic Role Selector (Crucial since there's zero demo data!) */}
+          {/* Role Selector */}
           <div>
             <label htmlFor="role" className="block text-xs font-bold text-foreground uppercase tracking-wider mb-1.5 flex items-center justify-between">
-              <span>Select Access Role</span>
-              <span className="text-[9px] text-primary lowercase tracking-normal">dynamic selector</span>
+              <span>Access Role Group</span>
+              <span className="text-[9px] text-primary lowercase tracking-normal">select access level</span>
             </label>
             <select
               id="role"
@@ -220,36 +284,54 @@ function LoginPage() {
             </select>
           </div>
 
-          {/* Remember me & Forgot */}
-          <div className="flex items-center justify-between text-xs pt-1">
-            <label className="flex items-center gap-2 text-muted-foreground cursor-pointer select-none">
-              <input
-                type="checkbox"
-                checked={rememberMe}
-                onChange={(e) => setRememberMe(e.target.checked)}
-                className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer"
-              />
-              <span>Remember me</span>
-            </label>
-            <span className="text-primary hover:underline cursor-pointer font-medium">Forgot password?</span>
-          </div>
+          {/* Remember me & Forgot (Only during sign-in) */}
+          {!isRegistering && (
+            <div className="flex items-center justify-between text-xs pt-1">
+              <label className="flex items-center gap-2 text-muted-foreground cursor-pointer select-none">
+                <input
+                  type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
+                  className="h-4 w-4 rounded border-border text-primary focus:ring-primary/20 cursor-pointer"
+                />
+                <span>Remember me</span>
+              </label>
+              <span className="text-primary hover:underline cursor-pointer font-medium">Forgot password?</span>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
             type="submit"
             disabled={loading}
-            className="w-full mt-6 rounded-lg bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/95 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center gap-2"
+            className="w-full mt-6 rounded-lg bg-primary py-3.5 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/95 hover:scale-[1.01] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 flex items-center justify-center gap-2 cursor-pointer"
           >
             {loading ? (
               <>
                 <div className="animate-spin rounded-full h-4 w-4 border-2 border-primary-foreground border-t-transparent" />
-                <span>Signing In...</span>
+                <span>{isRegistering ? "Registering..." : "Signing In..."}</span>
               </>
             ) : (
-              <span>Sign In to Dashboard</span>
+              <span>{isRegistering ? "Register & Request Access" : "Sign In to Dashboard"}</span>
             )}
           </button>
         </form>
+
+        {/* Dynamic toggle link */}
+        <div className="mt-6 text-center w-full">
+          <button
+            type="button"
+            onClick={() => {
+              setIsRegistering(!isRegistering);
+              setFullName("");
+            }}
+            className="text-xs text-primary font-bold hover:underline transition-all cursor-pointer"
+          >
+            {isRegistering
+              ? "Already have an authorized account? Sign In"
+              : "Need a church dashboard account? Register here"}
+          </button>
+        </div>
 
         {/* Security notice */}
         <div className="mt-8 border-t border-border/30 pt-4 text-center w-full">
