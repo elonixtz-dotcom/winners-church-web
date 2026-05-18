@@ -9,6 +9,7 @@ export interface UserProfile {
   email: string;
   role: "pastor_admin" | "media_team" | "cell_leader";
   home_cell_id?: string | null;
+  is_approved?: boolean;
   created_at: string;
 }
 
@@ -412,6 +413,7 @@ export const db = {
     const newLeader: UserProfile = {
       ...leader,
       id: crypto.randomUUID(),
+      is_approved: leader.is_approved !== undefined ? leader.is_approved : true,
       created_at: new Date().toISOString(),
     };
     if (isSupabaseConfigured && supabase) {

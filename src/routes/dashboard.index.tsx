@@ -876,10 +876,38 @@ function PastorDashboard({ activeTab, cells, leaders, members, reports, visitors
                             <span className="text-base">🎖️</span> {l.full_name}
                           </h4>
                           <p className="text-muted-foreground mt-1 font-medium text-primary">{l.email}</p>
+                          <div className="mt-1.5 flex items-center gap-1.5">
+                            <span className="text-[9px] uppercase font-bold text-muted-foreground">Access:</span>
+                            <span className={`px-2 py-0.5 rounded text-[8px] font-bold ${
+                              l.is_approved
+                                ? "bg-green-500/10 text-green-600 border border-green-500/20"
+                                : "bg-red-500/10 text-red-600 border border-red-500/20 animate-pulse"
+                            }`}>
+                              {l.is_approved ? "Approved ✅" : "Pending Vetting ⏳"}
+                            </span>
+                          </div>
                         </div>
-                        <div className="pt-2 border-t border-border/20 text-[10px] text-muted-foreground flex items-center justify-between font-medium">
-                          <span>Assigned Cell:</span>
-                          <span className="font-semibold text-foreground truncate max-w-[120px]">{c?.name || "Unassigned"}</span>
+                        <div className="pt-2 border-t border-border/20 text-[10px] text-muted-foreground flex flex-col gap-2.5 font-medium">
+                          <div className="flex items-center justify-between">
+                            <span>Assigned Cell:</span>
+                            <span className="font-semibold text-foreground truncate max-w-[120px]">{c?.name || "Unassigned"}</span>
+                          </div>
+                          <button
+                            type="button"
+                            onClick={async () => {
+                              const nextState = !l.is_approved;
+                              await db.updateCellLeader(l.id, { is_approved: nextState });
+                              toast.success(`Leader "${l.full_name}" is now ${nextState ? "Approved" : "Suspended"}!`);
+                              refresh();
+                            }}
+                            className={`w-full text-center py-1.5 rounded font-bold transition-all text-[9px] flex items-center justify-center gap-1 cursor-pointer ${
+                              l.is_approved
+                                ? "bg-amber-500/10 text-amber-700 hover:bg-amber-500/20 border border-amber-500/20"
+                                : "bg-primary text-primary-foreground hover:bg-primary/95 shadow-sm"
+                            }`}
+                          >
+                            {l.is_approved ? "⛔ Revoke Approval" : "✅ Approve Portal Access"}
+                          </button>
                         </div>
                       </div>
                     );

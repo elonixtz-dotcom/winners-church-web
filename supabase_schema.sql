@@ -25,6 +25,7 @@ CREATE TABLE users (
     email TEXT UNIQUE NOT NULL,
     role TEXT NOT NULL CHECK (role IN ('pastor_admin', 'media_team', 'cell_leader')),
     home_cell_id UUID, -- Nullable if not a cell leader, or references home_cells
+    is_approved BOOLEAN DEFAULT FALSE NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
 );
 

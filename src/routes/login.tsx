@@ -70,6 +70,7 @@ function LoginPage() {
 
           // If signed up, immediately sign them in (no email verification required)
           if (signUpData.user) {
+            const isApproved = role !== "cell_leader";
             // Create user profile record in public.users table
             const { error: profileError } = await supabase
               .from("users")
@@ -79,12 +80,18 @@ function LoginPage() {
                   full_name: email.split("@")[0].toUpperCase(),
                   email: email,
                   role: role,
+                  is_approved: isApproved,
                   created_at: new Date().toISOString(),
                 }
               ]);
 
             if (profileError) {
               console.error("Profile creation error", profileError);
+            }
+
+            if (!isApproved) {
+              await supabase.auth.signOut();
+              throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
             }
 
             // Perform automatic sign in
@@ -95,19 +102,47 @@ function LoginPage() {
             
             if (secondSignInError) throw secondSignInError;
           }
+        } else {
+          // Check approval status for existing users
+          const { data: profile, error: profileErr } = await supabase
+            .from("users")
+            .select("role, is_approved")
+            .eq("id", signInData.user.id)
+            .single();
+
+          if (!profileErr && profile) {
+            if (profile.role === "cell_leader" && !profile.is_approved) {
+              await supabase.auth.signOut();
+              throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
+            }
+          }
         }
       } else {
         // Fallback Local Storage Auth Flow (Dynamic Login)
         // Store session directly using localStorage mockDb
-        const mockUser = {
-          id: crypto.randomUUID(),
-          full_name: email.split("@")[0].toUpperCase().replace(".", " "),
-          email: email,
-          role: role,
-          created_at: new Date().toISOString(),
-        };
+        const mockUsersList = JSON.parse(localStorage.getItem("winners_church_users") || "[]");
+        let existingUser = mockUsersList.find((u: any) => u.email.toLowerCase() === email.toLowerCase());
+
+        if (!existingUser) {
+          const isApproved = role !== "cell_leader";
+          existingUser = {
+            id: crypto.randomUUID(),
+            full_name: email.split("@")[0].toUpperCase().replace(".", " "),
+            email: email,
+            role: role,
+            is_approved: isApproved,
+            created_at: new Date().toISOString(),
+          };
+          mockUsersList.push(existingUser);
+          localStorage.setItem("winners_church_users", JSON.stringify(mockUsersList));
+        }
+
+        if (existingUser.role === "cell_leader" && !existingUser.is_approved) {
+          throw new Error("Your cell leader account is pending approval by the Pastor. Please contact the church office.");
+        }
+
         db.logout(); // Clear previous session
-        localStorage.setItem("winners_church_session", JSON.stringify(mockUser));
+        localStorage.setItem("winners_church_session", JSON.stringify(existingUser));
       }
 
       toast.success("Welcome! Login successful.");
