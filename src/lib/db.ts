@@ -467,7 +467,31 @@ export const db = {
         .eq("id", user.id)
         .single();
       
-      if (error) return null;
+      if (error || !data) {
+        // Self-heal: If profile is missing in public.users but user is authenticated,
+        // create the public profile record on the fly to prevent any login redirect loops.
+        const role = user.user_metadata?.role || "pastor_admin";
+        const newProfile = {
+          id: user.id,
+          full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Church Member",
+          email: user.email || "",
+          role: role,
+          is_approved: role === "cell_leader" ? false : true,
+          created_at: new Date().toISOString()
+        };
+        
+        const { data: insertedData, error: insertError } = await supabase
+          .from("users")
+          .insert([newProfile])
+          .select()
+          .single();
+          
+        if (insertError) {
+          console.error("Self-heal profile creation failed", insertError);
+          return null;
+        }
+        return insertedData as UserProfile;
+      }
       return data as UserProfile;
     }
     return mockDb.getCurrentUser();
