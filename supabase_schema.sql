@@ -136,6 +136,22 @@ CREATE TABLE weekly_reports (
 -- ROW LEVEL SECURITY (RLS) & POLICIES SETUP
 -- =========================================================================
 
+-- Helper function to fetch user role securely bypassing RLS recursion loops
+CREATE OR REPLACE FUNCTION public.get_user_role(user_id UUID)
+RETURNS TEXT AS $$
+BEGIN
+  RETURN (SELECT role FROM public.users WHERE id = user_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
+-- Helper function to fetch user cell assignment securely bypassing RLS recursion loops
+CREATE OR REPLACE FUNCTION public.get_user_home_cell(user_id UUID)
+RETURNS UUID AS $$
+BEGIN
+  RETURN (SELECT home_cell_id FROM public.users WHERE id = user_id);
+END;
+$$ LANGUAGE plpgsql SECURITY DEFINER;
+
 -- Enable RLS on all tables
 ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE home_cells ENABLE ROW LEVEL SECURITY;
@@ -154,7 +170,7 @@ CREATE POLICY "Users can read all profiles"
 
 CREATE POLICY "Pastor/Admin can write profiles"
     ON users FOR ALL USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 CREATE POLICY "Users can edit their own profile"
@@ -168,13 +184,13 @@ CREATE POLICY "All authenticated users can read cells"
 
 CREATE POLICY "Pastor/Admin can manage cells"
     ON home_cells FOR ALL USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 CREATE POLICY "Cell leaders can read and edit their assigned cell info"
     ON home_cells FOR UPDATE USING (
         leader_id = auth.uid() OR
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 -- -------------------------------------------------------------------------
@@ -182,13 +198,13 @@ CREATE POLICY "Cell leaders can read and edit their assigned cell info"
 -- -------------------------------------------------------------------------
 CREATE POLICY "Pastor/Admin and Media can read all members"
     ON members FOR SELECT USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role IN ('pastor_admin', 'media_team'))
+        public.get_user_role(auth.uid()) IN ('pastor_admin', 'media_team')
     );
 
 CREATE POLICY "Home Cell Leaders can manage members of their own cell"
     ON members FOR ALL USING (
-        home_cell_id = (SELECT home_cell_id FROM users WHERE users.id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        home_cell_id = public.get_user_home_cell(auth.uid()) OR
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 -- -------------------------------------------------------------------------
@@ -196,13 +212,13 @@ CREATE POLICY "Home Cell Leaders can manage members of their own cell"
 -- -------------------------------------------------------------------------
 CREATE POLICY "Pastor/Admin can view all attendance"
     ON attendance FOR SELECT USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 CREATE POLICY "Cell Leaders can manage attendance of their own cell"
     ON attendance FOR ALL USING (
-        home_cell_id = (SELECT home_cell_id FROM users WHERE users.id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        home_cell_id = public.get_user_home_cell(auth.uid()) OR
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 -- -------------------------------------------------------------------------
@@ -210,13 +226,13 @@ CREATE POLICY "Cell Leaders can manage attendance of their own cell"
 -- -------------------------------------------------------------------------
 CREATE POLICY "Pastor/Admin can view all visitors"
     ON visitors FOR SELECT USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 CREATE POLICY "Cell Leaders can manage visitors of their own cell"
     ON visitors FOR ALL USING (
-        home_cell_id = (SELECT home_cell_id FROM users WHERE users.id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        home_cell_id = public.get_user_home_cell(auth.uid()) OR
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 -- -------------------------------------------------------------------------
@@ -227,7 +243,7 @@ CREATE POLICY "Anyone can read events"
 
 CREATE POLICY "Media and Pastor can manage events"
     ON events FOR ALL USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role IN ('pastor_admin', 'media_team'))
+        public.get_user_role(auth.uid()) IN ('pastor_admin', 'media_team')
     );
 
 -- -------------------------------------------------------------------------
@@ -238,7 +254,7 @@ CREATE POLICY "Anyone can read announcements"
 
 CREATE POLICY "Media and Pastor can manage announcements"
     ON announcements FOR ALL USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role IN ('pastor_admin', 'media_team'))
+        public.get_user_role(auth.uid()) IN ('pastor_admin', 'media_team')
     );
 
 -- -------------------------------------------------------------------------
@@ -246,13 +262,13 @@ CREATE POLICY "Media and Pastor can manage announcements"
 -- -------------------------------------------------------------------------
 CREATE POLICY "Pastor/Admin can view all reports"
     ON weekly_reports FOR SELECT USING (
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 CREATE POLICY "Cell Leaders can manage weekly reports for their cell"
     ON weekly_reports FOR ALL USING (
-        home_cell_id = (SELECT home_cell_id FROM users WHERE users.id = auth.uid()) OR
-        EXISTS (SELECT 1 FROM users WHERE users.id = auth.uid() AND users.role = 'pastor_admin')
+        home_cell_id = public.get_user_home_cell(auth.uid()) OR
+        public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
 -- =========================================================================
