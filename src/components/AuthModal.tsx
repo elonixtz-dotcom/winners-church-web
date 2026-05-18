@@ -75,6 +75,8 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
             if (!isApproved) {
               await supabase.auth.signOut();
               toast.success("Registration request submitted successfully! Access is pending Pastor approval.");
+              if (onSuccess) onSuccess();
+              navigate({ to: "/" });
               setActiveTab("signin");
               setFullName("");
               setEmail("");
@@ -148,6 +150,8 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
 
           if (!isApproved) {
             toast.success("Access requested successfully! Please wait for Pastor's approval.");
+            if (onSuccess) onSuccess();
+            navigate({ to: "/" });
             setActiveTab("signin");
             setFullName("");
             setEmail("");
