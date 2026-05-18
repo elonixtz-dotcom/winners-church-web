@@ -111,7 +111,7 @@ function LoginPage() {
           });
 
           if (signInError) {
-            throw new Error("Invalid login credentials. Please register your account first!");
+            throw new Error(signInError.message);
           }
 
           // Fetch user profile
