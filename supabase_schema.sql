@@ -168,8 +168,18 @@ ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
 CREATE POLICY "Users can read all profiles"
     ON users FOR SELECT USING (true);
 
-CREATE POLICY "Pastor/Admin can write profiles"
-    ON users FOR ALL USING (
+CREATE POLICY "Pastor/Admin can insert profiles"
+    ON users FOR INSERT WITH CHECK (
+        public.get_user_role(auth.uid()) = 'pastor_admin'
+    );
+
+CREATE POLICY "Pastor/Admin can update profiles"
+    ON users FOR UPDATE USING (
+        public.get_user_role(auth.uid()) = 'pastor_admin'
+    );
+
+CREATE POLICY "Pastor/Admin can delete profiles"
+    ON users FOR DELETE USING (
         public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
