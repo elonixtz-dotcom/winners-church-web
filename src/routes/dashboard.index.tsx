@@ -1228,34 +1228,130 @@ function MediaDashboard({ activeTab, events, announcements, sermons, refresh }: 
 
           {/* Active events manager */}
           <div className="md:col-span-2 bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-            <h3 className="font-heading text-base font-bold text-foreground border-b border-border/30 pb-2 mb-4">
-              Events Dashboard Registry ({events.length})
+            <h3 className="font-heading text-base font-bold text-foreground border-b border-border/30 pb-2 mb-5 flex items-center justify-between">
+              <span>Events Registry &amp; Archive</span>
+              <span className="text-[10px] bg-primary/10 text-primary px-2.5 py-0.5 rounded-full font-bold">
+                {events.length} Total
+              </span>
             </h3>
             {events.length === 0 ? (
               <div className="py-12 text-center bg-muted/15 border border-dashed border-border/50 rounded-xl">
                 <p className="text-xs text-muted-foreground font-semibold">No uploaded church events yet.</p>
               </div>
             ) : (
-              <div className="space-y-3.5 max-h-[500px] overflow-auto pr-1">
-                {events.map((e) => (
-                  <div key={e.id} className="p-4 bg-muted/10 border border-border/20 rounded-xl flex items-start justify-between gap-4">
-                    <div className="text-xs">
-                      <h4 className="font-bold text-foreground text-sm">{e.title}</h4>
-                      <p className="text-[10px] text-primary font-bold mt-1">
-                        Date: {new Date(e.event_date).toLocaleString()}
-                      </p>
-                      <p className="text-muted-foreground mt-2 line-clamp-2">{e.description}</p>
+              (() => {
+                const nowTime = new Date();
+                const upcomingEvents = events.filter(e => new Date(e.event_date) >= nowTime);
+                const pastEvents = events.filter(e => new Date(e.event_date) < nowTime);
+
+                return (
+                  <div className="space-y-6">
+                    {/* Upcoming Events Section */}
+                    <div>
+                      <h4 className="text-xs font-bold text-emerald-500 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                        Upcoming Scheduled Events ({upcomingEvents.length})
+                      </h4>
+                      {upcomingEvents.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground italic py-3 px-4 bg-muted/5 border border-border/10 rounded-xl">
+                          No upcoming events scheduled.
+                        </p>
+                      ) : (
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                          {upcomingEvents.map((e) => (
+                            <div key={e.id} className="p-3.5 bg-card border border-border/40 hover:border-emerald-500/20 rounded-xl flex items-center justify-between gap-4 transition-all shadow-sm group">
+                              <div className="flex items-center gap-3.5 min-w-0">
+                                {/* Flyer Thumbnail / Color Accents */}
+                                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-primary/5 flex items-center justify-center border border-border/20">
+                                  {e.image_url ? (
+                                    <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <img src={churchLogo} alt="" className="h-6 w-6 opacity-40 object-contain" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <h5 className="font-bold text-foreground text-xs md:text-sm truncate group-hover:text-primary transition-colors">{e.title}</h5>
+                                  <p className="text-[9px] font-bold text-amber-500 mt-0.5 uppercase tracking-wide">
+                                    📅 {new Date(e.event_date).toLocaleString("en-US", { 
+                                      weekday: "short", 
+                                      month: "short", 
+                                      day: "numeric", 
+                                      hour: "numeric", 
+                                      minute: "2-digit" 
+                                    })} EAT
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{e.description}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteEvent(e.id)}
+                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 transition-all flex-shrink-0 cursor-pointer shadow-sm hover:shadow"
+                                title="Delete Upcoming Event"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
                     </div>
-                    <button
-                      onClick={() => handleDeleteEvent(e.id)}
-                      className="p-1.5 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 transition-colors flex-shrink-0"
-                      title="Delete Event"
-                    >
-                      <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" /></svg>
-                    </button>
+
+                    {/* Past Events Section */}
+                    <div>
+                      <h4 className="text-xs font-bold text-rose-500/80 uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <span className="h-2 w-2 rounded-full bg-rose-500/60" />
+                        Past &amp; Completed Events ({pastEvents.length})
+                      </h4>
+                      {pastEvents.length === 0 ? (
+                        <p className="text-[11px] text-muted-foreground italic py-3 px-4 bg-muted/5 border border-border/10 rounded-xl">
+                          No past events found in database.
+                        </p>
+                      ) : (
+                        <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+                          {pastEvents.map((e) => (
+                            <div key={e.id} className="p-3.5 bg-muted/10 border border-border/10 hover:border-rose-500/20 rounded-xl flex items-center justify-between gap-4 transition-all opacity-80 group">
+                              <div className="flex items-center gap-3.5 min-w-0">
+                                {/* Flyer Thumbnail */}
+                                <div className="w-12 h-12 rounded-lg overflow-hidden flex-shrink-0 bg-muted/20 flex items-center justify-center border border-border/10 grayscale opacity-60">
+                                  {e.image_url ? (
+                                    <img src={e.image_url} alt={e.title} className="w-full h-full object-cover" />
+                                  ) : (
+                                    <img src={churchLogo} alt="" className="h-6 w-6 opacity-30 object-contain" />
+                                  )}
+                                </div>
+                                <div className="min-w-0">
+                                  <h5 className="font-bold text-foreground text-xs md:text-sm truncate line-through decoration-muted-foreground/30">{e.title}</h5>
+                                  <p className="text-[9px] font-semibold text-muted-foreground mt-0.5">
+                                    📅 {new Date(e.event_date).toLocaleString("en-US", { 
+                                      weekday: "short", 
+                                      month: "short", 
+                                      day: "numeric", 
+                                      hour: "numeric", 
+                                      minute: "2-digit" 
+                                    })} EAT
+                                  </p>
+                                  <p className="text-[10px] text-muted-foreground line-clamp-1 mt-0.5">{e.description}</p>
+                                </div>
+                              </div>
+                              <button
+                                onClick={() => handleDeleteEvent(e.id)}
+                                className="p-2 rounded-lg bg-red-500/10 hover:bg-red-500 hover:text-white text-red-500 transition-all flex-shrink-0 cursor-pointer shadow-sm hover:shadow"
+                                title="Delete Past Event"
+                              >
+                                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                                </svg>
+                              </button>
+                            </div>
+                          ))}
+                        </div>
+                      )}
+                    </div>
                   </div>
-                ))}
-              </div>
+                );
+              })()
             )}
           </div>
         </div>
