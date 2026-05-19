@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
-import { Mail, Lock, User, ShieldAlert, Eye, EyeOff, Check, Loader2 } from "lucide-react";
+import { Mail, Lock, User, ShieldAlert, Eye, EyeOff, Check, Loader2, Key } from "lucide-react";
 import churchLogo from "@/assets/winners-logo.png";
 import { db, isSupabaseConfigured, supabase } from "@/lib/db";
 import {
@@ -27,6 +27,7 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [role, setRole] = useState<"pastor_admin" | "media_team" | "cell_leader">("cell_leader");
+  const [accessCode, setAccessCode] = useState("");
   
   // UI states
   const [showPassword, setShowPassword] = useState(false);
@@ -40,9 +41,26 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!email || !password || (activeTab === "signup" && !fullName)) {
+    if (!email || !password || (activeTab === "signup" && (!fullName || !accessCode))) {
       toast.error("Please fill in all required fields.");
       return;
+    }
+
+    // Access Code Verification
+    if (activeTab === "signup") {
+      if (role === "cell_leader") {
+        const expectedKey = import.meta.env.VITE_LEADER_ACCESS_KEY || "WSF2026";
+        if (accessCode.trim() !== expectedKey) {
+          toast.error("Invalid WSF Leader Access Code. Please contact your Pastor.");
+          return;
+        }
+      } else {
+        const expectedKey = import.meta.env.VITE_ADMIN_ACCESS_KEY || "WinnersAdmin2026";
+        if (accessCode.trim() !== expectedKey) {
+          toast.error("Invalid Admin Security Key. Registration blocked.");
+          return;
+        }
+      }
     }
 
     setLoading(true);
@@ -314,28 +332,52 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
 
         {/* Role Selector & Info Notice (Only on Sign Up) */}
         {activeTab === "signup" && (
-          <div className="space-y-1.5">
-            <label htmlFor="role" className="block text-[10px] md:text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between">
-              <span>Access Role Group</span>
-              <span className="text-[9px] text-primary font-medium tracking-normal lowercase">select account type</span>
-            </label>
-            <select
-              id="role"
-              value={role}
-              onChange={(e) => setRole(e.target.value as any)}
-              className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-xs md:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm cursor-pointer"
-            >
-              <option value="pastor_admin">Pastor / Admin Account</option>
-              <option value="media_team">Media Coordinator Account</option>
-              <option value="cell_leader">WSF Home Cell Leader Account</option>
-            </select>
+          <div className="space-y-4 animate-fade-in">
+            <div className="space-y-1.5">
+              <label htmlFor="role" className="block text-[10px] md:text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between">
+                <span>Access Role Group</span>
+                <span className="text-[9px] text-primary font-medium tracking-normal lowercase">select account type</span>
+              </label>
+              <select
+                id="role"
+                value={role}
+                onChange={(e) => setRole(e.target.value as any)}
+                className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-xs md:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm cursor-pointer"
+              >
+                <option value="pastor_admin">Pastor / Admin Account</option>
+                <option value="media_team">Media Coordinator Account</option>
+                <option value="cell_leader">WSF Home Cell Leader Account</option>
+              </select>
 
-            {role === "cell_leader" && (
-              <div className="flex gap-2 p-2.5 rounded-lg bg-warm/30 border border-primary/10 text-primary text-[10px] md:text-xs font-semibold items-start leading-tight animate-fade-in-up">
-                <ShieldAlert className="h-4 w-4 flex-shrink-0 mt-0.5" />
-                <span>Notice: Cell leader accounts require manual approval by the Pastor before you can access the cell reports portal.</span>
+              {role === "cell_leader" && (
+                <div className="flex gap-2 p-2.5 rounded-lg bg-warm/30 border border-primary/10 text-primary text-[10px] md:text-xs font-semibold items-start leading-tight animate-fade-in-up">
+                  <ShieldAlert className="h-4 w-4 flex-shrink-0 mt-0.5" />
+                  <span>Notice: Cell leader accounts require manual approval by the Pastor before you can access the cell reports portal.</span>
+                </div>
+              )}
+            </div>
+
+            {/* Church Access Code Field */}
+            <div className="space-y-1 animate-fade-in-up">
+              <label htmlFor="accessCode" className="block text-[10px] md:text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between">
+                <span>{role === "cell_leader" ? "WSF Leader Access Code" : "Admin Security Key"}</span>
+                <span className="text-[9px] text-primary font-bold lowercase">Required</span>
+              </label>
+              <div className="relative">
+                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-muted-foreground">
+                  <Key className="h-4 w-4" />
+                </span>
+                <input
+                  id="accessCode"
+                  type="text"
+                  required
+                  value={accessCode}
+                  onChange={(e) => setAccessCode(e.target.value)}
+                  className="w-full rounded-lg border border-border bg-card pl-10 pr-4 py-2.5 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
+                  placeholder={role === "cell_leader" ? "e.g. WSF2026 (Ask Pastor)" : "Enter admin security key"}
+                />
               </div>
-            )}
+            </div>
           </div>
         )}
 
