@@ -54,6 +54,12 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
           toast.error("Invalid WSF Leader Access Code. Please contact your Pastor.");
           return;
         }
+      } else if (role === "media_team") {
+        const expectedKey = import.meta.env.VITE_MEDIA_ACCESS_KEY || "WinnersMedia2026";
+        if (accessCode.trim() !== expectedKey) {
+          toast.error("Invalid Media Team Access Key. Registration blocked.");
+          return;
+        }
       } else {
         const expectedKey = import.meta.env.VITE_ADMIN_ACCESS_KEY || "WinnersAdmin2026";
         if (accessCode.trim() !== expectedKey) {
@@ -360,7 +366,11 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
             {/* Church Access Code Field */}
             <div className="space-y-1 animate-fade-in-up">
               <label htmlFor="accessCode" className="block text-[10px] md:text-xs font-bold text-foreground uppercase tracking-wider flex items-center justify-between">
-                <span>{role === "cell_leader" ? "WSF Leader Access Code" : "Admin Security Key"}</span>
+                <span>
+                  {role === "cell_leader" && "WSF Leader Access Code"}
+                  {role === "media_team" && "Media Team Security Key"}
+                  {role === "pastor_admin" && "Admin Security Key"}
+                </span>
                 <span className="text-[9px] text-primary font-bold lowercase">Required</span>
               </label>
               <div className="relative">
@@ -374,7 +384,11 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
                   value={accessCode}
                   onChange={(e) => setAccessCode(e.target.value)}
                   className="w-full rounded-lg border border-border bg-card pl-10 pr-4 py-2.5 text-xs md:text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm"
-                  placeholder={role === "cell_leader" ? "e.g. WSF2026 (Ask Pastor)" : "Enter admin security key"}
+                  placeholder={
+                    role === "cell_leader" ? "e.g. WSF2026 (Ask Pastor)" : 
+                    role === "media_team" ? "Enter media team security key" : 
+                    "Enter admin security key"
+                  }
                 />
               </div>
             </div>
