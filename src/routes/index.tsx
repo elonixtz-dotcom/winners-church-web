@@ -27,8 +27,12 @@ function HomePage() {
           db.getEvents(),
           db.getAnnouncements(),
         ]);
-        // Only show upcoming events (max 3)
-        setEvents(fetchedEvents.slice(0, 3));
+        // Only show actual upcoming events (max 3)
+        const nowTime = new Date();
+        const futureEvents = fetchedEvents.filter(
+          (e) => new Date(e.event_date) >= nowTime
+        );
+        setEvents(futureEvents.slice(0, 3));
         setAnnouncements(fetchedAnnouncements.slice(0, 3));
       } catch (err) {
         console.error("Error loading home page data", err);
