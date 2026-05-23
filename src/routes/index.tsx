@@ -228,8 +228,8 @@ function HomePage() {
           <div className="mt-10 grid grid-cols-1 sm:grid-cols-3 gap-6">
             {[
               { time: "6:30 AM", label: "First Service", desc: "A fresh early morning encounter in God's presence" },
-              { time: "8:15 AM", label: "Second Service", desc: "A glorious mid-morning praise and teaching service" },
-              { time: "10:05 AM", label: "Third Service", desc: "A late-morning breakthrough celebration service" },
+              { time: "8:20 AM", label: "Second Service", desc: "A glorious mid-morning praise and teaching service" },
+              { time: "10:15 AM", label: "Third Service", desc: "A late-morning breakthrough celebration service" },
             ].map((service) => (
               <div key={service.time} className="bg-card rounded-2xl p-6 shadow-sm border border-border/40 hover:shadow-md hover:-translate-y-0.5 transition-all">
                 <div className="text-3xl font-heading font-bold text-primary">{service.time}</div>
@@ -296,7 +296,7 @@ function HomePage() {
                   </div>
                   <div>
                     <h3 className="font-bold text-foreground text-sm">Wednesday Communion Service</h3>
-                    <p className="text-xs text-muted-foreground mt-0.5">5:30 PM — In-depth teaching of the Word and Communion</p>
+                    <p className="text-xs text-muted-foreground mt-0.5">5:00 PM — In-depth teaching of the Word and Communion</p>
                   </div>
                 </div>
                 <div className="flex items-start gap-4">

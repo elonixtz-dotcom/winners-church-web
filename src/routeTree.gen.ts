@@ -11,10 +11,12 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SermonsRouteImport } from './routes/sermons'
+import { Route as PillarsRouteImport } from './routes/pillars'
 import { Route as LoginRouteImport } from './routes/login'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as DashboardRouteImport } from './routes/dashboard'
 import { Route as ContactRouteImport } from './routes/contact'
+import { Route as BranchesRouteImport } from './routes/branches'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
@@ -27,6 +29,11 @@ const ServicesRoute = ServicesRouteImport.update({
 const SermonsRoute = SermonsRouteImport.update({
   id: '/sermons',
   path: '/sermons',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PillarsRoute = PillarsRouteImport.update({
+  id: '/pillars',
+  path: '/pillars',
   getParentRoute: () => rootRouteImport,
 } as any)
 const LoginRoute = LoginRouteImport.update({
@@ -49,6 +56,11 @@ const ContactRoute = ContactRouteImport.update({
   path: '/contact',
   getParentRoute: () => rootRouteImport,
 } as any)
+const BranchesRoute = BranchesRouteImport.update({
+  id: '/branches',
+  path: '/branches',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const AboutRoute = AboutRouteImport.update({
   id: '/about',
   path: '/about',
@@ -68,10 +80,12 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/branches': typeof BranchesRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
+  '/pillars': typeof PillarsRoute
   '/sermons': typeof SermonsRoute
   '/services': typeof ServicesRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -79,9 +93,11 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/branches': typeof BranchesRoute
   '/contact': typeof ContactRoute
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
+  '/pillars': typeof PillarsRoute
   '/sermons': typeof SermonsRoute
   '/services': typeof ServicesRoute
   '/dashboard': typeof DashboardIndexRoute
@@ -90,10 +106,12 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/about': typeof AboutRoute
+  '/branches': typeof BranchesRoute
   '/contact': typeof ContactRoute
   '/dashboard': typeof DashboardRouteWithChildren
   '/events': typeof EventsRoute
   '/login': typeof LoginRoute
+  '/pillars': typeof PillarsRoute
   '/sermons': typeof SermonsRoute
   '/services': typeof ServicesRoute
   '/dashboard/': typeof DashboardIndexRoute
@@ -103,10 +121,12 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/about'
+    | '/branches'
     | '/contact'
     | '/dashboard'
     | '/events'
     | '/login'
+    | '/pillars'
     | '/sermons'
     | '/services'
     | '/dashboard/'
@@ -114,9 +134,11 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/about'
+    | '/branches'
     | '/contact'
     | '/events'
     | '/login'
+    | '/pillars'
     | '/sermons'
     | '/services'
     | '/dashboard'
@@ -124,10 +146,12 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/about'
+    | '/branches'
     | '/contact'
     | '/dashboard'
     | '/events'
     | '/login'
+    | '/pillars'
     | '/sermons'
     | '/services'
     | '/dashboard/'
@@ -136,10 +160,12 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AboutRoute: typeof AboutRoute
+  BranchesRoute: typeof BranchesRoute
   ContactRoute: typeof ContactRoute
   DashboardRoute: typeof DashboardRouteWithChildren
   EventsRoute: typeof EventsRoute
   LoginRoute: typeof LoginRoute
+  PillarsRoute: typeof PillarsRoute
   SermonsRoute: typeof SermonsRoute
   ServicesRoute: typeof ServicesRoute
 }
@@ -158,6 +184,13 @@ declare module '@tanstack/react-router' {
       path: '/sermons'
       fullPath: '/sermons'
       preLoaderRoute: typeof SermonsRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/pillars': {
+      id: '/pillars'
+      path: '/pillars'
+      fullPath: '/pillars'
+      preLoaderRoute: typeof PillarsRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/login': {
@@ -186,6 +219,13 @@ declare module '@tanstack/react-router' {
       path: '/contact'
       fullPath: '/contact'
       preLoaderRoute: typeof ContactRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/branches': {
+      id: '/branches'
+      path: '/branches'
+      fullPath: '/branches'
+      preLoaderRoute: typeof BranchesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/about': {
@@ -227,10 +267,12 @@ const DashboardRouteWithChildren = DashboardRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AboutRoute: AboutRoute,
+  BranchesRoute: BranchesRoute,
   ContactRoute: ContactRoute,
   DashboardRoute: DashboardRouteWithChildren,
   EventsRoute: EventsRoute,
   LoginRoute: LoginRoute,
+  PillarsRoute: PillarsRoute,
   SermonsRoute: SermonsRoute,
   ServicesRoute: ServicesRoute,
 }

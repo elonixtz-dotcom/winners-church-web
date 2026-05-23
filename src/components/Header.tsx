@@ -59,6 +59,20 @@ export default function Header() {
               About
             </Link>
             <Link
+              to="/pillars"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
+              activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
+            >
+              12 Pillars
+            </Link>
+            <Link
+              to="/branches"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
+              activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
+            >
+              Branches
+            </Link>
+            <Link
               to="/services"
               className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
               activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
@@ -188,6 +202,20 @@ export default function Header() {
               onClick={() => setMenuOpen(false)}
             >
               About
+            </Link>
+            <Link
+              to="/pillars"
+              className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
+              onClick={() => setMenuOpen(false)}
+            >
+              12 Pillars
+            </Link>
+            <Link
+              to="/branches"
+              className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
+              onClick={() => setMenuOpen(false)}
+            >
+              Branches
             </Link>
             <Link
               to="/services"
