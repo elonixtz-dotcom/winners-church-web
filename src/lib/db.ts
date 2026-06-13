@@ -98,6 +98,23 @@ export interface Sermon {
   created_at: string;
 }
 
+export interface CellMembershipRequest {
+  id: string;
+  first_name: string;
+  last_name: string;
+  gender: "Male" | "Female";
+  phone_number: string;
+  address: string;
+  occupation?: string;
+  marital_status?: "Single" | "Married" | "Widowed" | "Divorced";
+  home_cell_id: string;
+  status: "pending" | "approved" | "rejected";
+  notes?: string;
+  processed_by?: string | null;
+  processed_at?: string | null;
+  created_at: string;
+}
+
 // =========================================================================
 // 2. SUPABASE INITIALIZATION
 // =========================================================================
@@ -386,6 +403,43 @@ class LocalStorageDatabase {
   deleteHomeCell(id: string): void {
     const list = this.getHomeCells().filter((c) => c.id !== id);
     this.set("home_cells", list);
+  }
+
+  // --- Cell Membership Requests ---
+  getCellMembershipRequests(): CellMembershipRequest[] {
+    return this.get<CellMembershipRequest>("cell_membership_requests");
+  }
+
+  getCellMembershipRequestsByCell(cellId: string): CellMembershipRequest[] {
+    return this.getCellMembershipRequests().filter((r) => r.home_cell_id === cellId);
+  }
+
+  addCellMembershipRequest(request: Omit<CellMembershipRequest, "id" | "status" | "created_at">): CellMembershipRequest {
+    const list = this.getCellMembershipRequests();
+    const newRequest: CellMembershipRequest = {
+      ...request,
+      id: crypto.randomUUID(),
+      status: "pending",
+      created_at: new Date().toISOString(),
+    };
+    list.push(newRequest);
+    this.set("cell_membership_requests", list);
+    return newRequest;
+  }
+
+  updateCellMembershipRequest(id: string, updates: Partial<CellMembershipRequest>): CellMembershipRequest {
+    const list = this.getCellMembershipRequests();
+    const idx = list.findIndex((r) => r.id === id);
+    if (idx === -1) throw new Error("Membership request not found");
+    const updated = { ...list[idx], ...updates };
+    list[idx] = updated;
+    this.set("cell_membership_requests", list);
+    return updated;
+  }
+
+  deleteCellMembershipRequest(id: string): void {
+    const list = this.getCellMembershipRequests().filter((r) => r.id !== id);
+    this.set("cell_membership_requests", list);
   }
 }
 
@@ -831,5 +885,67 @@ export const db = {
       return data as WeeklyReport;
     }
     return mockDb.submitWeeklyReport(report);
+  },
+
+  // --- Cell Membership Requests ---
+  getCellMembershipRequests: async (): Promise<CellMembershipRequest[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("cell_membership_requests")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as CellMembershipRequest[];
+    }
+    return mockDb.getCellMembershipRequests();
+  },
+
+  getCellMembershipRequestsByCell: async (cellId: string): Promise<CellMembershipRequest[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("cell_membership_requests")
+        .select("*")
+        .eq("home_cell_id", cellId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as CellMembershipRequest[];
+    }
+    return mockDb.getCellMembershipRequestsByCell(cellId);
+  },
+
+  addCellMembershipRequest: async (request: Omit<CellMembershipRequest, "id" | "status" | "created_at">): Promise<CellMembershipRequest> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("cell_membership_requests")
+        .insert([request])
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CellMembershipRequest;
+    }
+    return mockDb.addCellMembershipRequest(request);
+  },
+
+  updateCellMembershipRequest: async (id: string, updates: Partial<CellMembershipRequest>): Promise<CellMembershipRequest> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("cell_membership_requests")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as CellMembershipRequest;
+    }
+    return mockDb.updateCellMembershipRequest(id, updates);
+  },
+
+  deleteCellMembershipRequest: async (id: string): Promise<void> => {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from("cell_membership_requests").delete().eq("id", id);
+      if (error) throw error;
+    } else {
+      mockDb.deleteCellMembershipRequest(id);
+    }
   },
 };

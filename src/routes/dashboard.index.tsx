@@ -11,7 +11,8 @@ import {
   ChurchEvent,
   Announcement,
   WeeklyReport,
-  Sermon
+  Sermon,
+  CellMembershipRequest
 } from "@/lib/db";
 
 export const Route = createFileRoute("/dashboard/")({
@@ -28,6 +29,7 @@ function DashboardHome() {
   const [allReports, setAllReports] = useState<WeeklyReport[]>([]);
   const [allVisitors, setAllVisitors] = useState<Visitor[]>([]);
   const [allLeaders, setAllLeaders] = useState<UserProfile[]>([]);
+  const [allRequests, setAllRequests] = useState<CellMembershipRequest[]>([]);
 
   // State data for Media Dashboard
   const [events, setEvents] = useState<ChurchEvent[]>([]);
@@ -39,6 +41,7 @@ function DashboardHome() {
   const [myMembers, setMyMembers] = useState<Member[]>([]);
   const [myVisitors, setMyVisitors] = useState<Visitor[]>([]);
   const [myReports, setMyReports] = useState<WeeklyReport[]>([]);
+  const [myRequests, setMyRequests] = useState<CellMembershipRequest[]>([]);
 
   // Refresh lists helper
   const [triggerRefresh, setTriggerRefresh] = useState(0);
@@ -60,18 +63,20 @@ function DashboardHome() {
     const loadData = async () => {
       try {
         if (user.role === "pastor_admin") {
-          const [c, m, r, v, u] = await Promise.all([
+          const [c, m, r, v, u, req] = await Promise.all([
             db.getHomeCells(),
             db.getMembers(),
             db.getWeeklyReports(),
             db.getVisitors(),
             db.getUsers(),
+            db.getCellMembershipRequests(),
           ]);
           setCells(c);
           setAllMembers(m);
           setAllReports(r);
           setAllVisitors(v);
           setAllLeaders(u.filter((x) => x.role === "cell_leader"));
+          setAllRequests(req);
         } else if (user.role === "media_team") {
           const [e, a, s] = await Promise.all([
             db.getEvents(),
@@ -94,19 +99,22 @@ function DashboardHome() {
           
           if (cell) {
             setMyCell(cell);
-            const [m, v, r] = await Promise.all([
+            const [m, v, r, req] = await Promise.all([
               db.getMembersByCell(cell.id),
               db.getVisitorsByCell(cell.id),
               db.getWeeklyReportsByCell(cell.id),
+              db.getCellMembershipRequestsByCell(cell.id),
             ]);
             setMyMembers(m);
             setMyVisitors(v);
             setMyReports(r);
+            setMyRequests(req);
           } else {
             setMyCell(null);
             setMyMembers([]);
             setMyVisitors([]);
             setMyReports([]);
+            setMyRequests([]);
           }
         }
       } catch (err) {
@@ -129,6 +137,7 @@ function DashboardHome() {
             <TabButton mobile active={activeTab === "cells"} onClick={() => setActiveTab("cells")} label="WSF Cells" icon="🏠" />
             <TabButton mobile active={activeTab === "leaders"} onClick={() => setActiveTab("leaders")} label="Leaders" icon="🎖️" />
             <TabButton mobile active={activeTab === "members"} onClick={() => setActiveTab("members")} label="Members" icon="👥" />
+            <TabButton mobile active={activeTab === "requests"} onClick={() => setActiveTab("requests")} label="Requests" icon="📋" />
             <TabButton mobile active={activeTab === "reports"} onClick={() => setActiveTab("reports")} label="Reports" icon="📝" />
           </>
         )}
@@ -142,6 +151,7 @@ function DashboardHome() {
         {user.role === "cell_leader" && (
           <>
             <TabButton mobile active={activeTab === "overview"} onClick={() => setActiveTab("overview")} label="WSF Cell" icon="🏠" />
+            <TabButton mobile active={activeTab === "requests"} onClick={() => setActiveTab("requests")} label="Requests" icon="📋" />
             <TabButton mobile active={activeTab === "members"} onClick={() => setActiveTab("members")} label="Register" icon="👥" />
             <TabButton mobile active={activeTab === "attendance"} onClick={() => setActiveTab("attendance")} label="Log Roll" icon="✅" />
             <TabButton mobile active={activeTab === "visitors"} onClick={() => setActiveTab("visitors")} label="Visitors" icon="🤝" />
@@ -164,6 +174,7 @@ function DashboardHome() {
               <TabButton active={activeTab === "cells"} onClick={() => setActiveTab("cells")} label="WSF Satellite Cells" icon="🏠" />
               <TabButton active={activeTab === "leaders"} onClick={() => setActiveTab("leaders")} label="Cell Leaders" icon="🎖️" />
               <TabButton active={activeTab === "members"} onClick={() => setActiveTab("members")} label="Members Directory" icon="👥" />
+              <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")} label="Membership Requests" icon="📋" />
               <TabButton active={activeTab === "reports"} onClick={() => setActiveTab("reports")} label="Cell Weekly Reports" icon="📝" />
             </div>
           )}
@@ -177,6 +188,7 @@ function DashboardHome() {
           {user.role === "cell_leader" && (
             <div className="flex flex-col gap-1.5">
               <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")} label="My WSF Center" icon="🏠" />
+              <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")} label="Membership Requests" icon="📋" />
               <TabButton active={activeTab === "members"} onClick={() => setActiveTab("members")} label="Cell Members Roll" icon="👥" />
               <TabButton active={activeTab === "attendance"} onClick={() => setActiveTab("attendance")} label="Log Attendance" icon="✅" />
               <TabButton active={activeTab === "visitors"} onClick={() => setActiveTab("visitors")} label="Visitor Registry" icon="🤝" />
@@ -195,6 +207,7 @@ function DashboardHome() {
               members={allMembers}
               reports={allReports}
               visitors={allVisitors}
+              requests={allRequests}
               refresh={refresh}
             />
           )}
@@ -216,6 +229,7 @@ function DashboardHome() {
               members={myMembers}
               visitors={myVisitors}
               reports={myReports}
+              requests={myRequests}
               refresh={refresh}
             />
           )}
@@ -276,9 +290,10 @@ interface PastorDashboardProps {
   members: Member[];
   reports: WeeklyReport[];
   visitors: Visitor[];
+  requests: CellMembershipRequest[];
   refresh: () => void;
 }
-function PastorDashboard({ activeTab, cells, leaders, members, reports, visitors, refresh }: PastorDashboardProps) {
+function PastorDashboard({ activeTab, cells, leaders, members, reports, visitors, requests, refresh }: PastorDashboardProps) {
   // Editing and delete states for Cells & Leaders
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
   const [editingLeaderId, setEditingLeaderId] = useState<string | null>(null);
@@ -1550,9 +1565,10 @@ interface CellLeaderDashboardProps {
   members: Member[];
   visitors: Visitor[];
   reports: WeeklyReport[];
+  requests: CellMembershipRequest[];
   refresh: () => void;
 }
-function CellLeaderDashboard({ activeTab, user, cell, cells, members, visitors, reports, refresh }: CellLeaderDashboardProps) {
+function CellLeaderDashboard({ activeTab, user, cell, cells, members, visitors, reports, requests, refresh }: CellLeaderDashboardProps) {
   // Member Registration States
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");

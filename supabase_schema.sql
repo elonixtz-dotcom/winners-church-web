@@ -133,6 +133,26 @@ CREATE TABLE weekly_reports (
 );
 
 -- =========================================================================
+-- 9. CELL MEMBERSHIP REQUESTS TABLE (Public registration with approval workflow)
+-- =========================================================================
+CREATE TABLE cell_membership_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    first_name TEXT NOT NULL,
+    last_name TEXT NOT NULL,
+    gender TEXT NOT NULL CHECK (gender IN ('Male', 'Female')),
+    phone_number TEXT NOT NULL,
+    address TEXT NOT NULL,
+    occupation TEXT,
+    marital_status TEXT CHECK (marital_status IN ('Single', 'Married', 'Widowed', 'Divorced')),
+    home_cell_id UUID REFERENCES home_cells(id) ON DELETE CASCADE NOT NULL,
+    status TEXT NOT NULL CHECK (status IN ('pending', 'approved', 'rejected')) DEFAULT 'pending',
+    notes TEXT,
+    processed_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    processed_at TIMESTAMP WITH TIME ZONE,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- =========================================================================
 -- ROW LEVEL SECURITY (RLS) & POLICIES SETUP
 -- =========================================================================
 
@@ -161,6 +181,7 @@ ALTER TABLE visitors ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
+ALTER TABLE cell_membership_requests ENABLE ROW LEVEL SECURITY;
 
 -- -------------------------------------------------------------------------
 -- Users Table Policies
@@ -281,8 +302,36 @@ CREATE POLICY "Cell Leaders can manage weekly reports for their cell"
         public.get_user_role(auth.uid()) = 'pastor_admin'
     );
 
+-- -------------------------------------------------------------------------
+-- Cell Membership Requests Table Policies
+-- -------------------------------------------------------------------------
+CREATE POLICY "Anyone can submit a membership request"
+    ON cell_membership_requests FOR INSERT WITH CHECK (true);
+
+CREATE POLICY "Pastor/Admin can view all requests"
+    ON cell_membership_requests FOR SELECT USING (
+        public.get_user_role(auth.uid()) = 'pastor_admin'
+    );
+
+CREATE POLICY "Home Cell Leaders can view requests for their own cell"
+    ON cell_membership_requests FOR SELECT USING (
+        home_cell_id = public.get_user_home_cell(auth.uid()) OR
+        public.get_user_role(auth.uid()) = 'pastor_admin'
+    );
+
+CREATE POLICY "Home Cell Leaders and Pastor/Admin can manage requests for their cell"
+    ON cell_membership_requests FOR UPDATE USING (
+        home_cell_id = public.get_user_home_cell(auth.uid()) OR
+        public.get_user_role(auth.uid()) = 'pastor_admin'
+    );
+
+CREATE POLICY "Pastor/Admin can delete requests"
+    ON cell_membership_requests FOR DELETE USING (
+        public.get_user_role(auth.uid()) = 'pastor_admin'
+    );
+
 -- =========================================================================
--- 9. AUTOMATIC USER SYNC FUNCTION AND TRIGGER FOR LOGINS
+-- 10. AUTOMATIC USER SYNC FUNCTION AND TRIGGER FOR LOGINS
 -- =========================================================================
 
 -- Clean trigger and function if existing
