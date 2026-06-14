@@ -94,6 +94,13 @@ export default function Header() {
               Sermons
             </Link>
             <Link
+              to="/books"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
+              activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
+            >
+              Books
+            </Link>
+            <Link
               to="/join-cell"
               className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
               activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
@@ -239,19 +246,26 @@ export default function Header() {
               Events
             </Link>
             <Link
-              to="/sermons"
-              className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              Sermons
-            </Link>
-            <Link
-              to="/join-cell"
-              className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
-              onClick={() => setMenuOpen(false)}
-            >
-              Join Cell
-            </Link>
+                  to="/sermons"
+                  className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Sermons
+                </Link>
+                <Link
+                  to="/books"
+                  className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Books
+                </Link>
+                <Link
+                  to="/join-cell"
+                  className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Join Cell
+                </Link>
             <Link
               to="/contact"
               className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"

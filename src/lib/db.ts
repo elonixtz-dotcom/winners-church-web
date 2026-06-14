@@ -115,6 +115,27 @@ export interface CellMembershipRequest {
   created_at: string;
 }
 
+export interface Book {
+  id: string;
+  title: string;
+  subtitle?: string;
+  author: string;
+  description: string;
+  synopsis?: string;
+  isbn?: string;
+  publication_date?: string;
+  page_count?: number;
+  price?: number;
+  currency?: string;
+  purchase_link?: string;
+  categories?: string[];
+  cover_image_url?: string;
+  created_by: string;
+  is_approved: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
 // =========================================================================
 // 2. SUPABASE INITIALIZATION
 // =========================================================================
@@ -440,6 +461,49 @@ class LocalStorageDatabase {
   deleteCellMembershipRequest(id: string): void {
     const list = this.getCellMembershipRequests().filter((r) => r.id !== id);
     this.set("cell_membership_requests", list);
+  }
+
+  // --- Books ---
+  getBooks(): Book[] {
+    return this.get<Book>("books").sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }
+
+  getBookById(id: string): Book | undefined {
+    return this.getBooks().find((b) => b.id === id);
+  }
+
+  getBooksByAuthor(authorId: string): Book[] {
+    return this.getBooks().filter((b) => b.created_by === authorId);
+  }
+
+  addBook(book: Omit<Book, "id" | "created_at" | "updated_at">): Book {
+    const list = this.getBooks();
+    const newBook: Book = {
+      ...book,
+      id: crypto.randomUUID(),
+      created_at: new Date().toISOString(),
+      updated_at: new Date().toISOString(),
+    };
+    list.push(newBook);
+    this.set("books", list);
+    return newBook;
+  }
+
+  updateBook(id: string, updates: Partial<Book>): Book {
+    const list = this.getBooks();
+    const idx = list.findIndex((b) => b.id === id);
+    if (idx === -1) throw new Error("Book not found");
+    const updated = { ...list[idx], ...updates, updated_at: new Date().toISOString() };
+    list[idx] = updated;
+    this.set("books", list);
+    return updated;
+  }
+
+  deleteBook(id: string): void {
+    const list = this.getBooks().filter((b) => b.id !== id);
+    this.set("books", list);
   }
 }
 
@@ -947,5 +1011,80 @@ export const db = {
     } else {
       mockDb.deleteCellMembershipRequest(id);
     }
+  },
+
+  // --- Books ---
+  getBooks: async (): Promise<Book[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("books")
+        .select("*")
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Book[];
+    }
+    return mockDb.getBooks();
+  },
+
+  getBookById: async (id: string): Promise<Book | null> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("books")
+        .select("*")
+        .eq("id", id)
+        .single();
+      if (error) return null;
+      return data as Book;
+    }
+    return mockDb.getBookById(id) || null;
+  },
+
+  getBooksByAuthor: async (authorId: string): Promise<Book[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("books")
+        .select("*")
+        .eq("created_by", authorId)
+        .order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Book[];
+    }
+    return mockDb.getBooksByAuthor(authorId);
+  },
+
+  addBook: async (book: Omit<Book, "id" | "created_at" | "updated_at">): Promise<Book> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("books")
+        .insert([book])
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Book;
+    }
+    return mockDb.addBook(book);
+  },
+
+  updateBook: async (id: string, updates: Partial<Book>): Promise<Book> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase
+        .from("books")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+      if (error) throw error;
+      return data as Book;
+    }
+    return mockDb.updateBook(id, updates);
+  },
+
+  deleteBook: async (id: string): Promise<void> => {
+    if (isSupabaseConfigured && supabase) {
+      const { error } = await supabase.from("books").delete().eq("id", id);
+      if (error) throw error;
+      return;
+    }
+    mockDb.deleteBook(id);
   },
 };

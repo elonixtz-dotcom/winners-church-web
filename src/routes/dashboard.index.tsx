@@ -12,7 +12,8 @@ import {
   Announcement,
   WeeklyReport,
   Sermon,
-  CellMembershipRequest
+  CellMembershipRequest,
+  Book
 } from "@/lib/db";
 
 export const Route = createFileRoute("/dashboard/")({
@@ -35,6 +36,11 @@ function DashboardHome() {
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [sermons, setSermons] = useState<Sermon[]>([]);
+
+  // State data for Books (Pastor Admin & Authors)
+  const [books, setBooks] = useState<Book[]>([]);
+  const [isAddBookModalOpen, setIsAddBookModalOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
 
   // State data for Cell Leader Dashboard
   const [myCell, setMyCell] = useState<HomeCell | null>(null);
@@ -63,13 +69,14 @@ function DashboardHome() {
     const loadData = async () => {
       try {
         if (user.role === "pastor_admin") {
-          const [c, m, r, v, u, req] = await Promise.all([
+          const [c, m, r, v, u, req, b] = await Promise.all([
             db.getHomeCells(),
             db.getMembers(),
             db.getWeeklyReports(),
             db.getVisitors(),
             db.getUsers(),
             db.getCellMembershipRequests(),
+            db.getBooks(),
           ]);
           setCells(c);
           setAllMembers(m);
@@ -77,15 +84,18 @@ function DashboardHome() {
           setAllVisitors(v);
           setAllLeaders(u.filter((x) => x.role === "cell_leader"));
           setAllRequests(req);
+          setBooks(b);
         } else if (user.role === "media_team") {
-          const [e, a, s] = await Promise.all([
+          const [e, a, s, b] = await Promise.all([
             db.getEvents(),
             db.getAnnouncements(),
             db.getSermons(),
+            db.getBooks(),
           ]);
           setEvents(e);
           setAnnouncements(a);
           setSermons(s);
+          setBooks(b);
         } else if (user.role === "cell_leader") {
           const allCells = await db.getHomeCells();
           
@@ -139,6 +149,7 @@ function DashboardHome() {
             <TabButton mobile active={activeTab === "members"} onClick={() => setActiveTab("members")} label="Members" icon="👥" />
             <TabButton mobile active={activeTab === "requests"} onClick={() => setActiveTab("requests")} label="Requests" icon="📋" />
             <TabButton mobile active={activeTab === "reports"} onClick={() => setActiveTab("reports")} label="Reports" icon="📝" />
+            <TabButton mobile active={activeTab === "books"} onClick={() => setActiveTab("books")} label="Books" icon="📚" />
           </>
         )}
         {user.role === "media_team" && (
@@ -146,6 +157,7 @@ function DashboardHome() {
             <TabButton mobile active={activeTab === "overview"} onClick={() => setActiveTab("overview")} label="Add Events" icon="📅" />
             <TabButton mobile active={activeTab === "announcements"} onClick={() => setActiveTab("announcements")} label="News" icon="📣" />
             <TabButton mobile active={activeTab === "sermons"} onClick={() => setActiveTab("sermons")} label="Sermons" icon="📖" />
+            <TabButton mobile active={activeTab === "books"} onClick={() => setActiveTab("books")} label="Books" icon="📚" />
           </>
         )}
         {user.role === "cell_leader" && (
@@ -176,6 +188,7 @@ function DashboardHome() {
               <TabButton active={activeTab === "members"} onClick={() => setActiveTab("members")} label="Members Directory" icon="👥" />
               <TabButton active={activeTab === "requests"} onClick={() => setActiveTab("requests")} label="Membership Requests" icon="📋" />
               <TabButton active={activeTab === "reports"} onClick={() => setActiveTab("reports")} label="Cell Weekly Reports" icon="📝" />
+              <TabButton active={activeTab === "books"} onClick={() => setActiveTab("books")} label="Book Management" icon="📚" />
             </div>
           )}
           {user.role === "media_team" && (
@@ -183,6 +196,7 @@ function DashboardHome() {
               <TabButton active={activeTab === "overview"} onClick={() => setActiveTab("overview")} label="Events Manager" icon="📅" />
               <TabButton active={activeTab === "announcements"} onClick={() => setActiveTab("announcements")} label="Homepage News" icon="📣" />
               <TabButton active={activeTab === "sermons"} onClick={() => setActiveTab("sermons")} label="Sermons Archive" icon="📖" />
+              <TabButton active={activeTab === "books"} onClick={() => setActiveTab("books")} label="Book Management" icon="📚" />
             </div>
           )}
           {user.role === "cell_leader" && (
@@ -208,6 +222,7 @@ function DashboardHome() {
               reports={allReports}
               visitors={allVisitors}
               requests={allRequests}
+              books={books}
               refresh={refresh}
             />
           )}
@@ -217,6 +232,7 @@ function DashboardHome() {
               events={events}
               announcements={announcements}
               sermons={sermons}
+              books={books}
               refresh={refresh}
             />
           )}
@@ -291,9 +307,10 @@ interface PastorDashboardProps {
   reports: WeeklyReport[];
   visitors: Visitor[];
   requests: CellMembershipRequest[];
+  books: Book[];
   refresh: () => void;
 }
-function PastorDashboard({ activeTab, cells, leaders, members, reports, visitors, requests, refresh }: PastorDashboardProps) {
+function PastorDashboard({ activeTab, cells, leaders, members, reports, visitors, requests, books, refresh }: PastorDashboardProps) {
   // Editing and delete states for Cells & Leaders
   const [editingCellId, setEditingCellId] = useState<string | null>(null);
   const [editingLeaderId, setEditingLeaderId] = useState<string | null>(null);
@@ -977,7 +994,438 @@ function PastorDashboard({ activeTab, cells, leaders, members, reports, visitors
           )}
         </div>
       )}
+
+      {activeTab === "books" && (
+        <BooksPanel books={books} refresh={refresh} />
+      )}
     </>
+  );
+}
+
+// =========================================================================
+// BOOKS MANAGEMENT PANEL
+// =========================================================================
+interface BooksPanelProps {
+  books: Book[];
+  refresh: () => void;
+}
+function BooksPanel({ books, refresh }: BooksPanelProps) {
+  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [editingBook, setEditingBook] = useState<Book | null>(null);
+  
+  // Form state
+  const [title, setTitle] = useState("");
+  const [subtitle, setSubtitle] = useState("");
+  const [author, setAuthor] = useState("");
+  const [description, setDescription] = useState("");
+  const [synopsis, setSynopsis] = useState("");
+  const [isbn, setIsbn] = useState("");
+  const [publicationDate, setPublicationDate] = useState("");
+  const [pageCount, setPageCount] = useState("");
+  const [price, setPrice] = useState("");
+  const [currency, setCurrency] = useState("USD");
+  const [purchaseLink, setPurchaseLink] = useState("");
+  const [categories, setCategories] = useState("");
+  const [coverImageUrl, setCoverImageUrl] = useState("");
+  const [isApproved, setIsApproved] = useState(true);
+  
+  // Load user to set author default
+  useEffect(() => {
+    const loadUser = async () => {
+      const user = await db.getCurrentUser();
+      if (user) {
+        setAuthor(user.full_name);
+      }
+    };
+    loadUser();
+  }, []);
+  
+  // Reset form when modal opens/closes
+  const resetForm = () => {
+    setTitle("");
+    setSubtitle("");
+    setDescription("");
+    setSynopsis("");
+    setIsbn("");
+    setPublicationDate("");
+    setPageCount("");
+    setPrice("");
+    setCurrency("USD");
+    setPurchaseLink("");
+    setCategories("");
+    setCoverImageUrl("");
+    setIsApproved(true);
+    setEditingBook(null);
+  };
+  
+  // Load editing book into form
+  useEffect(() => {
+    if (editingBook) {
+      setTitle(editingBook.title);
+      setSubtitle(editingBook.subtitle || "");
+      setAuthor(editingBook.author);
+      setDescription(editingBook.description);
+      setSynopsis(editingBook.synopsis || "");
+      setIsbn(editingBook.isbn || "");
+      setPublicationDate(editingBook.publication_date || "");
+      setPageCount(editingBook.page_count?.toString() || "");
+      setPrice(editingBook.price?.toString() || "");
+      setCurrency(editingBook.currency || "USD");
+      setPurchaseLink(editingBook.purchase_link || "");
+      setCategories(editingBook.categories?.join(", ") || "");
+      setCoverImageUrl(editingBook.cover_image_url || "");
+      setIsApproved(editingBook.is_approved);
+    }
+  }, [editingBook]);
+  
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      const bookData = {
+        title,
+        subtitle: subtitle || undefined,
+        author,
+        description,
+        synopsis: synopsis || undefined,
+        isbn: isbn || undefined,
+        publication_date: publicationDate || undefined,
+        page_count: pageCount ? parseInt(pageCount) : undefined,
+        price: price ? parseFloat(price) : undefined,
+        currency: currency || undefined,
+        purchase_link: purchaseLink || undefined,
+        categories: categories ? categories.split(",").map(c => c.trim()) : undefined,
+        cover_image_url: coverImageUrl || undefined,
+        created_by: (await db.getCurrentUser())?.id || "",
+        is_approved: isApproved,
+      };
+      
+      if (editingBook) {
+        await db.updateBook(editingBook.id, bookData);
+        toast.success("Book updated successfully!");
+      } else {
+        await db.addBook(bookData);
+        toast.success("Book added successfully!");
+      }
+      
+      resetForm();
+      setIsAddModalOpen(false);
+      refresh();
+    } catch (err) {
+      console.error("Failed to save book:", err);
+      toast.error("Failed to save book.");
+    }
+  };
+  
+  const handleDelete = async (book: Book) => {
+    if (!confirm(`Are you sure you want to delete "${book.title}"?`)) return;
+    try {
+      await db.deleteBook(book.id);
+      toast.success("Book deleted successfully!");
+      refresh();
+    } catch (err) {
+      toast.error("Failed to delete book.");
+    }
+  };
+  
+  const handleApprove = async (book: Book) => {
+    try {
+      await db.updateBook(book.id, { is_approved: true });
+      toast.success("Book approved!");
+      refresh();
+    } catch (err) {
+      toast.error("Failed to approve book.");
+    }
+  };
+  
+  return (
+    <div className="flex flex-col gap-6">
+      <div className="flex flex-col md:flex-row justify-between md:items-center gap-3">
+        <div>
+          <h2 className="font-heading text-xl font-bold text-foreground">Book Management</h2>
+          <p className="text-xs text-muted-foreground">Manage and showcase published works</p>
+        </div>
+        <button
+          onClick={() => { resetForm(); setIsAddModalOpen(true); }}
+          className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground shadow-sm hover:bg-primary/95 transition-colors"
+        >
+          <span className="text-lg">📚</span> Add New Book
+        </button>
+      </div>
+      
+      {/* Books Grid */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
+        {books.length === 0 ? (
+          <div className="col-span-full py-12 text-center bg-muted/15 border border-dashed border-border/50 rounded-xl">
+            <p className="text-sm text-muted-foreground font-semibold">No books added yet.</p>
+            <p className="text-xs text-muted-foreground mt-1">Click "Add New Book" to get started!</p>
+          </div>
+        ) : (
+          books.map((book) => (
+            <div key={book.id} className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden flex flex-col">
+              {book.cover_image_url ? (
+                <div className="aspect-[2/3] bg-muted/20 flex items-center justify-center overflow-hidden">
+                  <img 
+                    src={book.cover_image_url} 
+                    alt={book.title} 
+                    className="w-full h-full object-cover"
+                  />
+                </div>
+              ) : (
+                <div className="aspect-[2/3] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
+                  <span className="text-5xl">📖</span>
+                </div>
+              )}
+              
+              <div className="p-5 flex-1 flex flex-col gap-3">
+                <div>
+                  <h3 className="font-heading text-lg font-bold text-foreground line-clamp-1">{book.title}</h3>
+                  {book.subtitle && (
+                    <p className="text-xs text-muted-foreground mt-1 line-clamp-2">{book.subtitle}</p>
+                  )}
+                </div>
+                
+                <div className="space-y-1.5">
+                  <p className="text-xs text-muted-foreground">
+                    <span className="font-semibold">Author:</span> {book.author}
+                  </p>
+                  {book.isbn && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-semibold">ISBN:</span> {book.isbn}
+                    </p>
+                  )}
+                  {book.price && (
+                    <p className="text-xs text-muted-foreground">
+                      <span className="font-semibold">Price:</span> {book.currency || "USD"} {book.price.toFixed(2)}
+                    </p>
+                  )}
+                </div>
+                
+                <div className="mt-auto flex flex-wrap gap-2">
+                  {!book.is_approved && (
+                    <span className="px-2 py-1 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full uppercase">Pending</span>
+                  )}
+                  {book.is_approved && (
+                    <span className="px-2 py-1 bg-green-100 text-green-800 text-[10px] font-bold rounded-full uppercase">Approved</span>
+                  )}
+                  {book.categories?.map((cat, idx) => (
+                    <span key={idx} className="px-2 py-1 bg-muted text-muted-foreground text-[10px] font-semibold rounded-full">
+                      {cat}
+                    </span>
+                  ))}
+                </div>
+                
+                <div className="flex gap-2 mt-3 pt-3 border-t border-border/30">
+                  <button
+                    onClick={() => { setEditingBook(book); setIsAddModalOpen(true); }}
+                    className="flex-1 text-xs font-semibold py-1.5 px-3 rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
+                  >
+                    Edit
+                  </button>
+                  {!book.is_approved && (
+                    <button
+                      onClick={() => handleApprove(book)}
+                      className="flex-1 text-xs font-semibold py-1.5 px-3 rounded-lg bg-green-600 text-white hover:bg-green-700 transition-colors"
+                    >
+                      Approve
+                    </button>
+                  )}
+                  <button
+                    onClick={() => handleDelete(book)}
+                    className="text-xs font-semibold py-1.5 px-3 rounded-lg text-red-600 hover:bg-red-50 transition-colors"
+                  >
+                    Delete
+                  </button>
+                </div>
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+      
+      {/* Add/Edit Book Modal */}
+      {isAddModalOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
+          <div className="bg-card rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">
+            <div className="p-6 border-b border-border/40 flex justify-between items-center">
+              <h3 className="font-heading text-lg font-bold text-foreground">
+                {editingBook ? "Edit Book" : "Add New Book"}
+              </h3>
+              <button
+                onClick={() => { resetForm(); setIsAddModalOpen(false); }}
+                className="text-muted-foreground hover:text-foreground text-2xl leading-none"
+              >
+                ×
+              </button>
+            </div>
+            <form onSubmit={handleSubmit} className="p-6 flex flex-col gap-4">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Book Title *</label>
+                  <input
+                    type="text"
+                    value={title}
+                    onChange={(e) => setTitle(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    required
+                    placeholder="Enter book title"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Subtitle</label>
+                  <input
+                    type="text"
+                    value={subtitle}
+                    onChange={(e) => setSubtitle(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Enter subtitle (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Author *</label>
+                  <input
+                    type="text"
+                    value={author}
+                    onChange={(e) => setAuthor(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    required
+                    placeholder="Author name"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">ISBN</label>
+                  <input
+                    type="text"
+                    value={isbn}
+                    onChange={(e) => setIsbn(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="ISBN number (optional)"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Description *</label>
+                  <textarea
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 h-24"
+                    required
+                    placeholder="Brief description of the book"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Synopsis</label>
+                  <textarea
+                    value={synopsis}
+                    onChange={(e) => setSynopsis(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30 h-32"
+                    placeholder="Full synopsis (optional)"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Publication Date</label>
+                  <input
+                    type="date"
+                    value={publicationDate}
+                    onChange={(e) => setPublicationDate(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Page Count</label>
+                  <input
+                    type="number"
+                    value={pageCount}
+                    onChange={(e) => setPageCount(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Number of pages"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Price</label>
+                  <input
+                    type="number"
+                    step="0.01"
+                    value={price}
+                    onChange={(e) => setPrice(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="0.00"
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Currency</label>
+                  <select
+                    value={currency}
+                    onChange={(e) => setCurrency(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                  >
+                    <option value="USD">USD ($)</option>
+                    <option value="EUR">EUR (€)</option>
+                    <option value="GBP">GBP (£)</option>
+                    <option value="NGN">NGN (₦)</option>
+                  </select>
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Purchase Link</label>
+                  <input
+                    type="url"
+                    value={purchaseLink}
+                    onChange={(e) => setPurchaseLink(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="https://example.com/buy"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Categories (comma separated)</label>
+                  <input
+                    type="text"
+                    value={categories}
+                    onChange={(e) => setCategories(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="Faith, Christianity, Ministry"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="block text-xs font-semibold text-foreground mb-1.5">Cover Image URL</label>
+                  <input
+                    type="url"
+                    value={coverImageUrl}
+                    onChange={(e) => setCoverImageUrl(e.target.value)}
+                    className="w-full px-3 py-2 text-sm rounded-lg border border-border/40 bg-background focus:outline-none focus:ring-2 focus:ring-primary/30"
+                    placeholder="https://example.com/cover.jpg"
+                  />
+                </div>
+                <div className="md:col-span-2">
+                  <label className="flex items-center gap-2 text-xs font-semibold text-foreground">
+                    <input
+                      type="checkbox"
+                      checked={isApproved}
+                      onChange={(e) => setIsApproved(e.target.checked)}
+                      className="rounded border-border/40"
+                    />
+                    Publish immediately (approve)
+                  </label>
+                </div>
+              </div>
+              
+              <div className="flex justify-end gap-3 mt-4">
+                <button
+                  type="button"
+                  onClick={() => { resetForm(); setIsAddModalOpen(false); }}
+                  className="px-4 py-2 text-sm font-semibold rounded-lg border border-border/40 hover:bg-muted/30 transition-colors"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-sm font-semibold rounded-lg bg-primary text-primary-foreground hover:bg-primary/95 transition-colors"
+                >
+                  {editingBook ? "Save Changes" : "Add Book"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+    </div>
   );
 }
 
@@ -1007,9 +1455,10 @@ interface MediaDashboardProps {
   events: ChurchEvent[];
   announcements: Announcement[];
   sermons: Sermon[];
+  books: Book[];
   refresh: () => void;
 }
-function MediaDashboard({ activeTab, events, announcements, sermons, refresh }: MediaDashboardProps) {
+function MediaDashboard({ activeTab, events, announcements, sermons, books, refresh }: MediaDashboardProps) {
   // Event Form State
   const [evtTitle, setEvtTitle] = useState("");
   const [evtDesc, setEvtDesc] = useState("");
@@ -1549,6 +1998,10 @@ function MediaDashboard({ activeTab, events, announcements, sermons, refresh }: 
             )}
           </div>
         </div>
+      )}
+
+      {activeTab === "books" && (
+        <BooksPanel books={books} refresh={refresh} />
       )}
     </>
   );
