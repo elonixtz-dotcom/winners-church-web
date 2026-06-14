@@ -20,6 +20,9 @@ import { Route as BranchesRouteImport } from './routes/branches'
 import { Route as AboutRouteImport } from './routes/about'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as DashboardIndexRouteImport } from './routes/dashboard.index'
+import { Route as JoinCellRouteImport } from './routes/join-cell'
+import { Route as BooksRouteImport } from './routes/books'
+import { Route as BooksBookIdRouteImport } from './routes/books.$bookId'
 
 const ServicesRoute = ServicesRouteImport.update({
   id: '/services',
@@ -76,6 +79,21 @@ const DashboardIndexRoute = DashboardIndexRouteImport.update({
   path: '/',
   getParentRoute: () => DashboardRoute,
 } as any)
+const JoinCellRoute = JoinCellRouteImport.update({
+  id: '/join-cell',
+  path: '/join-cell',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BooksRoute = BooksRouteImport.update({
+  id: '/books',
+  path: '/books',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const BooksBookIdRoute = BooksBookIdRouteImport.update({
+  id: '/books/$bookId',
+  path: '/books/$bookId',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -88,6 +106,9 @@ export interface FileRoutesByFullPath {
   '/pillars': typeof PillarsRoute
   '/sermons': typeof SermonsRoute
   '/services': typeof ServicesRoute
+  '/join-cell': typeof JoinCellRoute
+  '/books': typeof BooksRoute
+  '/books/$bookId': typeof BooksBookIdRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRoutesByTo {
@@ -100,6 +121,9 @@ export interface FileRoutesByTo {
   '/pillars': typeof PillarsRoute
   '/sermons': typeof SermonsRoute
   '/services': typeof ServicesRoute
+  '/join-cell': typeof JoinCellRoute
+  '/books': typeof BooksRoute
+  '/books/$bookId': typeof BooksBookIdRoute
   '/dashboard': typeof DashboardIndexRoute
 }
 export interface FileRoutesById {
@@ -114,6 +138,9 @@ export interface FileRoutesById {
   '/pillars': typeof PillarsRoute
   '/sermons': typeof SermonsRoute
   '/services': typeof ServicesRoute
+  '/join-cell': typeof JoinCellRoute
+  '/books': typeof BooksRoute
+  '/books/$bookId': typeof BooksBookIdRoute
   '/dashboard/': typeof DashboardIndexRoute
 }
 export interface FileRouteTypes {
@@ -129,6 +156,9 @@ export interface FileRouteTypes {
     | '/pillars'
     | '/sermons'
     | '/services'
+    | '/join-cell'
+    | '/books'
+    | '/books/$bookId'
     | '/dashboard/'
   fileRoutesByTo: FileRoutesByTo
   to:
@@ -141,6 +171,9 @@ export interface FileRouteTypes {
     | '/pillars'
     | '/sermons'
     | '/services'
+    | '/join-cell'
+    | '/books'
+    | '/books/$bookId'
     | '/dashboard'
   id:
     | '__root__'
@@ -154,6 +187,9 @@ export interface FileRouteTypes {
     | '/pillars'
     | '/sermons'
     | '/services'
+    | '/join-cell'
+    | '/books'
+    | '/books/$bookId'
     | '/dashboard/'
   fileRoutesById: FileRoutesById
 }
@@ -168,6 +204,9 @@ export interface RootRouteChildren {
   PillarsRoute: typeof PillarsRoute
   SermonsRoute: typeof SermonsRoute
   ServicesRoute: typeof ServicesRoute
+  JoinCellRoute: typeof JoinCellRoute
+  BooksRoute: typeof BooksRoute
+  BooksBookIdRoute: typeof BooksBookIdRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -249,6 +288,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof DashboardIndexRouteImport
       parentRoute: typeof DashboardRoute
     }
+    '/join-cell': {
+      id: '/join-cell'
+      path: '/join-cell'
+      fullPath: '/join-cell'
+      preLoaderRoute: typeof JoinCellRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/books': {
+      id: '/books'
+      path: '/books'
+      fullPath: '/books'
+      preLoaderRoute: typeof BooksRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/books/$bookId': {
+      id: '/books/$bookId'
+      path: '/books/$bookId'
+      fullPath: '/books/$bookId'
+      preLoaderRoute: typeof BooksBookIdRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -275,6 +335,9 @@ const rootRouteChildren: RootRouteChildren = {
   PillarsRoute: PillarsRoute,
   SermonsRoute: SermonsRoute,
   ServicesRoute: ServicesRoute,
+  JoinCellRoute: JoinCellRoute,
+  BooksRoute: BooksRoute,
+  BooksBookIdRoute: BooksBookIdRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
