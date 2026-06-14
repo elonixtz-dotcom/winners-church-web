@@ -61,7 +61,7 @@ export default function Footer() {
                 Contact
               </Link>
               <a
-                href="https://imc.faithtabernacle.org.ng/"
+                href="https://faithtabernacle.org.ng/"
                 target="_blank"
                 rel="noopener noreferrer"
                 className="text-sm text-background/70 hover:text-gold transition-colors"

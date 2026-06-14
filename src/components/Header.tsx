@@ -115,7 +115,7 @@ export default function Header() {
               Contact
             </Link>
             <a
-              href="https://imc.faithtabernacle.org.ng/"
+              href="https://faithtabernacle.org.ng/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
@@ -274,7 +274,7 @@ export default function Header() {
               Contact
             </Link>
             <a
-              href="https://imc.faithtabernacle.org.ng/"
+              href="https://faithtabernacle.org.ng/"
               target="_blank"
               rel="noopener noreferrer"
               className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
