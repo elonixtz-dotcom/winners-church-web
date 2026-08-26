@@ -3,7 +3,7 @@ import { useNavigate } from "@tanstack/react-router";
 import { toast } from "sonner";
 import { Mail, Lock, User, ShieldAlert, Eye, EyeOff, Check, Loader2, Key } from "lucide-react";
 import churchLogo from "@/assets/winners-logo.png";
-import { db, isSupabaseConfigured, supabase } from "@/lib/db";
+import { db, isSupabaseConfigured, supabase, normalizeRole } from "@/lib/db";
 import {
   Dialog,
   DialogContent,
@@ -126,15 +126,34 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
           }
 
           // Fetch user profile from public.users
-          const { data: profile, error: profileErr } = await supabase
+          let { data: profile } = await supabase
             .from("users")
             .select("role, is_approved")
             .eq("id", signInData.user.id)
             .single();
 
-          if (profileErr || !profile) {
-            await supabase.auth.signOut();
-            throw new Error("Your user profile was not found. Please register a new account.");
+          if (!profile) {
+            // Profile row is missing (e.g. the auto-creation trigger didn't run for this
+            // account) — attempt to self-heal instead of locking the user out permanently.
+            const role = normalizeRole(signInData.user.user_metadata?.role);
+            const { data: healedProfile } = await supabase
+              .from("users")
+              .insert([{
+                id: signInData.user.id,
+                full_name: signInData.user.user_metadata?.full_name || signInData.user.email?.split("@")[0] || "Church Member",
+                email: signInData.user.email || "",
+                role,
+                is_approved: role === "cell_leader" || role === "assistant_leader" ? false : true,
+                created_at: new Date().toISOString(),
+              }])
+              .select("role, is_approved")
+              .single();
+
+            if (!healedProfile) {
+              await supabase.auth.signOut();
+              throw new Error("Your user profile could not be found or repaired. Please contact the church office.");
+            }
+            profile = healedProfile;
           }
 
           if (profile.role === "cell_leader" && !profile.is_approved) {

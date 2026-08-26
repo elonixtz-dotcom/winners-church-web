@@ -273,6 +273,19 @@ export interface Book {
   updated_at: string;
 }
 
+const VALID_USER_ROLES: UserProfile["role"][] = [
+  "super_admin", "church_admin", "district_pastor", "zone_pastor", "cell_leader", "assistant_leader", "media_team",
+];
+
+// Some accounts were created before role values were aligned with the users table
+// CHECK constraint (e.g. signup used to send "pastor_admin", which isn't a valid role).
+// Normalize those so profile self-heal doesn't keep failing for those accounts.
+export function normalizeRole(role: string | undefined | null): UserProfile["role"] {
+  if (role === "pastor_admin") return "church_admin";
+  if (role && (VALID_USER_ROLES as string[]).includes(role)) return role as UserProfile["role"];
+  return "cell_leader";
+}
+
 // =========================================================================
 // 2. SUPABASE INITIALIZATION
 // =========================================================================
@@ -773,7 +786,7 @@ export const db = {
 
       const { data, error } = await supabase.from("users").select("*").eq("id", user.id).single();
       if (error || !data) {
-        const role = user.user_metadata?.role || "cell_leader";
+        const role = normalizeRole(user.user_metadata?.role);
         const newProfile = {
           id: user.id,
           full_name: user.user_metadata?.full_name || user.email?.split("@")[0] || "Church Member",
