@@ -1,6 +1,7 @@
 import { Outlet, Link, createRootRoute, HeadContent, Scripts, useLocation } from "@tanstack/react-router";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { Toaster } from "@/components/ui/sonner";
 
 import appCss from "../styles.css?url";
 
@@ -68,6 +69,7 @@ function RootComponent() {
     return (
       <main>
         <Outlet />
+        <Toaster position="top-center" richColors />
       </main>
     );
   }
@@ -79,6 +81,7 @@ function RootComponent() {
         <Outlet />
       </main>
       <Footer />
+      <Toaster position="top-center" richColors />
     </>
   );
 }
