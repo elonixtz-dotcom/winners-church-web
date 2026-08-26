@@ -1164,6 +1164,14 @@ export const db = {
     }
     return mockDb.getTestimonies().filter(t => t.is_approved && t.is_public);
   },
+  getAllTestimonies: async (): Promise<Testimony[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("testimonies").select("*").order("date_shared", { ascending: false });
+      if (error) throw error;
+      return data as Testimony[];
+    }
+    return mockDb.getTestimonies();
+  },
   getTestimoniesByCell: async (cellId: string): Promise<Testimony[]> => {
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from("testimonies").select("*").eq("home_cell_id", cellId).order("date_shared", { ascending: false });

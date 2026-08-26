@@ -38,6 +38,8 @@ function DashboardHome() {
   const [zones, setZones] = useState<Zone[]>([]);
   const [districts, setDistricts] = useState<District[]>([]);
   const [users, setUsers] = useState<UserProfile[]>([]);
+  const [dataLoading, setDataLoading] = useState(true);
+  const [dataError, setDataError] = useState<string | null>(null);
   const [triggerRefresh, setTriggerRefresh] = useState(0);
   const refresh = () => setTriggerRefresh((prev) => prev + 1);
 
@@ -60,6 +62,8 @@ function DashboardHome() {
     if (!user) return;
 
     const loadData = async () => {
+      setDataLoading(true);
+      setDataError(null);
       try {
         // Load common data
         const [allCells, allZones, allDistricts, allUsers] = await Promise.all([
@@ -83,7 +87,7 @@ function DashboardHome() {
             db.getNewConverts(),
             db.getPrayerRequests(),
             db.getFollowUps(),
-            db.getTestimoniesByCell(""), // We'll filter later
+            db.getAllTestimonies(),
             db.getOfferings(),
             db.getCellMembershipRequests(),
             db.getBooks(),
@@ -129,6 +133,9 @@ function DashboardHome() {
         }
       } catch (err) {
         console.error("Error loading dashboard data", err);
+        setDataError(err instanceof Error ? err.message : "Failed to load dashboard data.");
+      } finally {
+        setDataLoading(false);
       }
     };
 
@@ -243,7 +250,30 @@ function DashboardHome() {
 
         {/* Dynamic Panels Content Area */}
         <section className="lg:col-span-3 flex flex-col gap-6">
-          {(user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") && pastorData && (
+          {dataLoading && (
+            <div className="bg-card border border-border/40 rounded-2xl p-16 text-center shadow-sm flex flex-col items-center gap-3">
+              <div className="animate-spin rounded-full h-8 w-8 border-3 border-primary border-t-transparent" />
+              <p className="text-xs text-muted-foreground font-semibold">Loading dashboard data...</p>
+            </div>
+          )}
+
+          {!dataLoading && dataError && (
+            <div className="bg-card border border-destructive/30 rounded-2xl p-10 text-center shadow-sm">
+              <div className="w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
+                ⚠️
+              </div>
+              <h3 className="font-heading text-lg font-bold text-foreground">Couldn't Load Dashboard Data</h3>
+              <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-2">{dataError}</p>
+              <button
+                onClick={refresh}
+                className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition"
+              >
+                Try Again
+              </button>
+            </div>
+          )}
+
+          {!dataLoading && !dataError && (user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") && pastorData && (
             <PastorDashboard
               activeTab={activeTab}
               user={user}
@@ -255,7 +285,7 @@ function DashboardHome() {
               refresh={refresh}
             />
           )}
-          {(user.role === "cell_leader" || user.role === "assistant_leader") && (
+          {!dataLoading && !dataError && (user.role === "cell_leader" || user.role === "assistant_leader") && (
             <CellLeaderDashboard
               activeTab={activeTab}
               user={user}
@@ -263,7 +293,7 @@ function DashboardHome() {
               refresh={refresh}
             />
           )}
-          {user.role === "media_team" && mediaData && (
+          {!dataLoading && !dataError && user.role === "media_team" && mediaData && (
             <MediaDashboard
               activeTab={activeTab}
               data={mediaData}
