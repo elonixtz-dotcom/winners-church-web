@@ -994,6 +994,22 @@ export const db = {
   },
 
   // --- Attendance ---
+  getAllAttendance: async (): Promise<AttendanceRecord[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("attendance").select("*").order("meeting_date", { ascending: false });
+      if (error) throw error;
+      return data as AttendanceRecord[];
+    }
+    return mockDb.getAttendance();
+  },
+  getAttendanceByHomeCellAll: async (cellId: string): Promise<AttendanceRecord[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("attendance").select("*").eq("home_cell_id", cellId).order("meeting_date", { ascending: false });
+      if (error) throw error;
+      return data as AttendanceRecord[];
+    }
+    return mockDb.getAttendance().filter((a) => a.home_cell_id === cellId);
+  },
   getAttendanceByCell: async (cellId: string, date: string): Promise<AttendanceRecord[]> => {
     if (isSupabaseConfigured && supabase) {
       const { data, error } = await supabase.from("attendance").select("*").eq("home_cell_id", cellId).eq("meeting_date", date);
@@ -1333,6 +1349,15 @@ export const db = {
       return data as Book[];
     }
     return mockDb.getBooks().filter(b => b.is_approved);
+  },
+  // Includes unapproved books - for admin/media roles who can see the full pipeline (RLS-gated).
+  getAllBooksForAdmin: async (): Promise<Book[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("books").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as Book[];
+    }
+    return mockDb.getBooks();
   },
   getBookById: async (id: string): Promise<Book | null> => {
     if (isSupabaseConfigured && supabase) {

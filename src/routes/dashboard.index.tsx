@@ -1,6 +1,7 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { toast } from "sonner";
+import { Menu, LogOut, Home } from "lucide-react";
 import {
   db,
   UserProfile,
@@ -23,15 +24,37 @@ import {
   Zone,
   District,
 } from "@/lib/db";
-import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, BarChart, Bar } from "recharts";
+import { roleLabel } from "@/lib/permissions";
+import Sidebar from "@/components/dashboard/Sidebar";
+import { DashboardSkeleton } from "@/components/dashboard/Skeletons";
+import ErrorState from "@/components/dashboard/ErrorState";
+import EmptyState from "@/components/dashboard/EmptyState";
+import StatusBadge from "@/components/dashboard/StatusBadge";
+import {
+  OrgOverview, CellLeaderOverview, MediaTeamOverview,
+  buildOrgAdminQuickActions, buildSupervisorQuickActions, attendanceRateFromRecords,
+} from "@/components/dashboard/RoleOverviews";
 
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardHome,
 });
 
 function DashboardHome() {
+  const navigate = useNavigate();
   const [user, setUser] = useState<UserProfile | null>(null);
   const [activeTab, setActiveTab] = useState("overview");
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+  const [mobileNavOpen, setMobileNavOpen] = useState(false);
+
+  const handleLogoutClick = async () => {
+    try {
+      await db.logout();
+      toast.success("Signed out successfully.");
+      navigate({ to: "/" });
+    } catch {
+      toast.error("Logout failed.");
+    }
+  };
 
   // Common state
   const [cells, setCells] = useState<HomeCell[]>([]);
@@ -79,7 +102,7 @@ function DashboardHome() {
 
         if (user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") {
           // Load pastor/admin data
-          const [members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books] = await Promise.all([
+          const [members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books, attendance] = await Promise.all([
             db.getMembers(),
             db.getWeeklyReports(),
             db.getVisitors(),
@@ -91,17 +114,17 @@ function DashboardHome() {
             db.getOfferings(),
             db.getCellMembershipRequests(),
             db.getBooks(),
+            db.getAllAttendance(),
           ]);
-          
-          // Filter testimonies for cell if needed, but super admin can see all (adjust as needed)
-          setPastorData({ members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books });
+
+          setPastorData({ members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books, attendance });
         } else if (user.role === "media_team") {
           // Load media data
           const [events, announcements, sermons, books] = await Promise.all([
             db.getEvents(),
             db.getAnnouncements(),
             db.getSermons(),
-            db.getBooks(),
+            db.getAllBooksForAdmin(),
           ]);
           setMediaData({ events, announcements, sermons, books });
         } else if (user.role === "cell_leader" || user.role === "assistant_leader") {
@@ -122,7 +145,7 @@ function DashboardHome() {
               db.getFollowUpsByCell(cell.id),
               db.getTestimoniesByCell(cell.id),
               db.getOfferingsByCell(cell.id),
-              Promise.resolve([]), // getAttendanceByCell is there, but let's just load all then filter
+              db.getAttendanceByHomeCellAll(cell.id),
               db.getCellMembershipRequestsByCell(cell.id),
             ]);
             
@@ -144,134 +167,56 @@ function DashboardHome() {
 
   if (!user) return null;
 
-  // Determine all available tabs for current role
-  const getTabs = () => {
-    switch (user.role) {
-      case "super_admin":
-      case "church_admin":
-        return [
-          { id: "overview", label: "Dashboard", icon: "📊" },
-          { id: "cells", label: "Home Cells", icon: "🏠" },
-          { id: "zones", label: "Zones", icon: "🌍" },
-          { id: "districts", label: "Districts", icon: "🗺️" },
-          { id: "users", label: "Users", icon: "👥" },
-          { id: "members", label: "Members", icon: "👤" },
-          { id: "meetings", label: "Meetings", icon: "📅" },
-          { id: "attendance", label: "Attendance", icon: "✅" },
-          { id: "visitors", label: "Visitors", icon: "🤝" },
-          { id: "converts", label: "New Converts", icon: "🕊️" },
-          { id: "prayers", label: "Prayer Requests", icon: "🙏" },
-          { id: "followups", label: "Follow Ups", icon: "📞" },
-          { id: "testimonies", label: "Testimonies", icon: "📖" },
-          { id: "offerings", label: "Offerings", icon: "💰" },
-          { id: "reports", label: "Reports", icon: "📝" },
-          { id: "books", label: "Books", icon: "📚" },
-        ];
-      case "district_pastor":
-      case "zone_pastor":
-        return [
-          { id: "overview", label: "Dashboard", icon: "📊" },
-          { id: "cells", label: "Home Cells", icon: "🏠" },
-          { id: "members", label: "Members", icon: "👤" },
-          { id: "meetings", label: "Meetings", icon: "📅" },
-          { id: "visitors", label: "Visitors", icon: "🤝" },
-          { id: "converts", label: "New Converts", icon: "🕊️" },
-          { id: "prayers", label: "Prayer Requests", icon: "🙏" },
-          { id: "followups", label: "Follow Ups", icon: "📞" },
-          { id: "testimonies", label: "Testimonies", icon: "📖" },
-          { id: "offerings", label: "Offerings", icon: "💰" },
-          { id: "reports", label: "Reports", icon: "📝" },
-        ];
-      case "cell_leader":
-      case "assistant_leader":
-        return [
-          { id: "overview", label: "Dashboard", icon: "📊" },
-          { id: "cell", label: "My Cell", icon: "🏠" },
-          { id: "meetings", label: "Meetings", icon: "📅" },
-          { id: "attendance", label: "Attendance", icon: "✅" },
-          { id: "members", label: "Members", icon: "👤" },
-          { id: "visitors", label: "Visitors", icon: "🤝" },
-          { id: "converts", label: "New Converts", icon: "🕊️" },
-          { id: "prayers", label: "Prayer Requests", icon: "🙏" },
-          { id: "followups", label: "Follow Ups", icon: "📞" },
-          { id: "testimonies", label: "Testimonies", icon: "📖" },
-          { id: "offerings", label: "Offerings", icon: "💰" },
-          { id: "reports", label: "Reports", icon: "📝" },
-          { id: "requests", label: "Requests", icon: "📋" },
-        ];
-      case "media_team":
-        return [
-          { id: "overview", label: "Dashboard", icon: "📊" },
-          { id: "events", label: "Events", icon: "📅" },
-          { id: "announcements", label: "Announcements", icon: "📣" },
-          { id: "sermons", label: "Sermons", icon: "📖" },
-          { id: "books", label: "Books", icon: "📚" },
-        ];
-      default:
-        return [{ id: "overview", label: "Dashboard", icon: "📊" }];
-    }
-  };
-
-  const tabs = getTabs();
-
   return (
-    <div className="flex flex-col gap-6">
-      {/* Mobile Top Navigation Tabs */}
-      <div className="lg:hidden bg-card border border-border/40 rounded-xl p-1.5 flex items-center gap-1 overflow-x-auto shadow-sm">
-        {tabs.map((tab) => (
-          <TabButton
-            key={tab.id}
-            mobile
-            active={activeTab === tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            label={tab.label}
-            icon={tab.icon}
-          />
-        ))}
-      </div>
+    <div className="flex min-h-screen bg-background">
+      <Sidebar
+        role={user.role}
+        activeTab={activeTab}
+        onSelect={(id) => { setActiveTab(id); setMobileNavOpen(false); }}
+        collapsed={sidebarCollapsed}
+        mobileOpen={mobileNavOpen}
+        onCloseMobile={() => setMobileNavOpen(false)}
+      />
 
-      {/* Main Grid: Sidebar (Desktop) + Content Panels */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-        {/* Desktop Sidebar Navigation */}
-        <aside className="hidden lg:block lg:col-span-1 bg-card border border-border/40 rounded-2xl p-5 h-fit shadow-sm space-y-2">
-          <div className="text-xs font-bold text-muted-foreground uppercase tracking-widest px-3 mb-4">
-            Navigation
+      <div className="flex-1 min-w-0">
+        {/* Top Bar */}
+        <header className="sticky top-0 z-30 flex items-center justify-between gap-3 border-b border-border/40 bg-card/95 backdrop-blur px-4 sm:px-6 py-3">
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => {
+                setMobileNavOpen(true);
+                setSidebarCollapsed((c) => !c);
+              }}
+              className="rounded-lg p-2 text-foreground hover:bg-muted transition-colors"
+              aria-label="Toggle navigation"
+            >
+              <Menu className="h-5 w-5" />
+            </button>
+            <span className="hidden sm:inline text-sm font-semibold text-foreground">Church Portal</span>
           </div>
-          {tabs.map((tab) => (
-            <TabButton
-              key={tab.id}
-              active={activeTab === tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              label={tab.label}
-              icon={tab.icon}
-            />
-          ))}
-        </aside>
-
-        {/* Dynamic Panels Content Area */}
-        <section className="lg:col-span-3 flex flex-col gap-6">
-          {dataLoading && (
-            <div className="bg-card border border-border/40 rounded-2xl p-16 text-center shadow-sm flex flex-col items-center gap-3">
-              <div className="animate-spin rounded-full h-8 w-8 border-3 border-primary border-t-transparent" />
-              <p className="text-xs text-muted-foreground font-semibold">Loading dashboard data...</p>
+          <div className="flex items-center gap-3">
+            <div className="text-right hidden sm:block">
+              <div className="text-xs font-bold text-foreground leading-tight">{user.full_name}</div>
+              <div className="text-[10px] text-muted-foreground font-medium">{roleLabel(user.role)}</div>
             </div>
-          )}
-
-          {!dataLoading && dataError && (
-            <div className="bg-card border border-destructive/30 rounded-2xl p-10 text-center shadow-sm">
-              <div className="w-14 h-14 bg-destructive/10 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
-                ⚠️
-              </div>
-              <h3 className="font-heading text-lg font-bold text-foreground">Couldn't Load Dashboard Data</h3>
-              <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-2">{dataError}</p>
-              <button
-                onClick={refresh}
-                className="mt-5 inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition"
-              >
-                Try Again
-              </button>
+            <div className="h-9 w-9 rounded-full bg-primary/10 text-primary flex items-center justify-center text-xs font-bold shrink-0">
+              {user.full_name.charAt(0).toUpperCase()}
             </div>
-          )}
+            <button
+              onClick={handleLogoutClick}
+              className="rounded-lg p-2 text-muted-foreground hover:text-primary hover:bg-muted transition-colors"
+              title="Sign Out"
+              aria-label="Sign out"
+            >
+              <LogOut className="h-4 w-4" />
+            </button>
+          </div>
+        </header>
+
+        <main className="p-4 sm:p-6 lg:p-8">
+          {dataLoading && <DashboardSkeleton />}
+
+          {!dataLoading && dataError && <ErrorState message={dataError} onRetry={refresh} />}
 
           {!dataLoading && !dataError && (user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") && pastorData && (
             <PastorDashboard
@@ -283,6 +228,7 @@ function DashboardHome() {
               users={users}
               data={pastorData}
               refresh={refresh}
+              onNavigate={setActiveTab}
             />
           )}
           {!dataLoading && !dataError && (user.role === "cell_leader" || user.role === "assistant_leader") && (
@@ -291,6 +237,7 @@ function DashboardHome() {
               user={user}
               data={cellLeaderData}
               refresh={refresh}
+              onNavigate={setActiveTab}
             />
           )}
           {!dataLoading && !dataError && user.role === "media_team" && mediaData && (
@@ -298,67 +245,12 @@ function DashboardHome() {
               activeTab={activeTab}
               data={mediaData}
               refresh={refresh}
+              onNavigate={setActiveTab}
+              userName={user.full_name}
             />
           )}
-        </section>
+        </main>
       </div>
-    </div>
-  );
-}
-
-// Helper Tab Button Component
-interface TabButtonProps {
-  active: boolean;
-  onClick: () => void;
-  label: string;
-  icon: string;
-  mobile?: boolean;
-}
-function TabButton({ active, onClick, label, icon, mobile }: TabButtonProps) {
-  if (mobile) {
-    return (
-      <button
-        onClick={onClick}
-        className={`flex flex-col items-center gap-0.5 py-2 px-3 rounded-lg text-center transition-all shrink-0 ${
-          active
-            ? "bg-primary text-primary-foreground font-bold"
-            : "text-muted-foreground hover:text-foreground"
-        }`}
-      >
-        <span className="text-lg leading-none">{icon}</span>
-        <span className="text-[10px] whitespace-nowrap">{label}</span>
-      </button>
-    );
-  }
-
-  return (
-    <button
-      onClick={onClick}
-      className={`w-full flex items-center gap-3 px-4 py-3 rounded-xl text-left text-xs font-semibold transition-all ${
-        active
-          ? "bg-primary text-primary-foreground shadow-md"
-          : "text-foreground/80 hover:bg-muted hover:text-foreground"
-      }`}
-    >
-      <span className="text-sm">{icon}</span>
-      <span>{label}</span>
-    </button>
-  );
-}
-
-// Stat Card Component
-interface StatCardProps {
-  label: string;
-  value: number | string;
-  icon: string;
-  bg?: string;
-}
-function StatCard({ label, value, icon, bg = "bg-primary/5 border-primary/10" }: StatCardProps) {
-  return (
-    <div className={`p-4 rounded-xl border ${bg} shadow-sm`}>
-      <div className="text-2xl mb-2">{icon}</div>
-      <div className="text-lg font-bold text-foreground">{value}</div>
-      <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   );
 }
@@ -375,73 +267,105 @@ interface PastorDashboardProps {
   users: UserProfile[];
   data: any;
   refresh: () => void;
+  onNavigate: (tab: string) => void;
 }
-function PastorDashboard({ activeTab, user, cells, zones, districts, users, data, refresh }: PastorDashboardProps) {
-  const { members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books } = data;
+function PastorDashboard({ activeTab, user, cells, zones, districts, users, data, refresh, onNavigate }: PastorDashboardProps) {
+  const {
+    members: allMembers, reports: allReports, visitors: allVisitors, meetings: allMeetings,
+    newConverts: allNewConverts, prayers, followUps, testimonies, offerings: allOfferings,
+    requests, books, attendance: allAttendance,
+  } = data;
 
-  // Prepare chart data
-  const chartData = reports.slice(0, 10).reverse().map((r: WeeklyReport) => ({
-    date: r.report_date,
-    attendance: r.members_present,
-    converts: r.new_converts,
-    offering: r.total_offering,
-  }));
+  // Zone/district pastors get a scope computed client-side from the org hierarchy
+  // (RLS currently grants these roles org-wide read on these tables - see supabase_schema.sql -
+  // this narrows what's *displayed* to their area of responsibility).
+  let scopedCellIds: Set<string> | null = null;
+  let scopeLabel = "Church Scope: Winners Church";
+  let performance: { title: string; rows: { label: string; members: number; attendanceRate: number; visitors: number }[] } | undefined;
+
+  if (user.role === "district_pastor") {
+    const myDistrict = districts.find((d: District) => d.district_pastor_id === user.id);
+    const districtCells = myDistrict ? cells.filter((c: HomeCell) => c.district_id === myDistrict.id) : [];
+    scopedCellIds = new Set(districtCells.map((c: HomeCell) => c.id));
+    scopeLabel = myDistrict ? `My District: ${myDistrict.name}` : "No District Assigned";
+    performance = {
+      title: "Cell Performance",
+      rows: districtCells.map((c: HomeCell) => ({
+        label: c.name,
+        members: allMembers.filter((m: Member) => m.home_cell_id === c.id).length,
+        attendanceRate: attendanceRateFromRecords(allAttendance.filter((a: AttendanceRecord) => a.home_cell_id === c.id)),
+        visitors: allVisitors.filter((v: Visitor) => v.home_cell_id === c.id).length,
+      })),
+    };
+  } else if (user.role === "zone_pastor") {
+    const myZone = zones.find((z: Zone) => z.zone_pastor_id === user.id);
+    const zoneDistricts = myZone ? districts.filter((d: District) => d.zone_id === myZone.id) : [];
+    const zoneDistrictIds = new Set(zoneDistricts.map((d: District) => d.id));
+    const zoneCells = cells.filter((c: HomeCell) => c.district_id && zoneDistrictIds.has(c.district_id));
+    scopedCellIds = new Set(zoneCells.map((c: HomeCell) => c.id));
+    scopeLabel = myZone ? `My Zone: ${myZone.name}` : "No Zone Assigned";
+    performance = {
+      title: "District Performance",
+      rows: zoneDistricts.map((d: District) => {
+        const districtCellIds = new Set(cells.filter((c: HomeCell) => c.district_id === d.id).map((c: HomeCell) => c.id));
+        return {
+          label: d.name,
+          members: allMembers.filter((m: Member) => districtCellIds.has(m.home_cell_id)).length,
+          attendanceRate: attendanceRateFromRecords(allAttendance.filter((a: AttendanceRecord) => districtCellIds.has(a.home_cell_id))),
+          visitors: allVisitors.filter((v: Visitor) => districtCellIds.has(v.home_cell_id)).length,
+        };
+      }),
+    };
+  }
+
+  const scopedCells = scopedCellIds ? cells.filter((c: HomeCell) => scopedCellIds!.has(c.id)) : cells;
+  const members = scopedCellIds ? allMembers.filter((m: Member) => scopedCellIds!.has(m.home_cell_id)) : allMembers;
+  const visitors = scopedCellIds ? allVisitors.filter((v: Visitor) => scopedCellIds!.has(v.home_cell_id)) : allVisitors;
+  const meetings = scopedCellIds ? allMeetings.filter((m: MeetingRecord) => scopedCellIds!.has(m.home_cell_id)) : allMeetings;
+  const newConverts = scopedCellIds ? allNewConverts.filter((c: NewConvert) => scopedCellIds!.has(c.home_cell_id)) : allNewConverts;
+  const offerings = scopedCellIds ? allOfferings.filter((o: Offering) => scopedCellIds!.has(o.home_cell_id)) : allOfferings;
+  const reports = scopedCellIds ? allReports.filter((r: WeeklyReport) => scopedCellIds!.has(r.home_cell_id)) : allReports;
+  const attendance = scopedCellIds ? allAttendance.filter((a: AttendanceRecord) => scopedCellIds!.has(a.home_cell_id)) : allAttendance;
+
+  const isSupervisor = user.role === "zone_pastor" || user.role === "district_pastor";
+  const quickActions = isSupervisor ? buildSupervisorQuickActions(onNavigate) : buildOrgAdminQuickActions(onNavigate);
+  const title = user.role === "super_admin" ? "Church Command Center" : user.role === "church_admin" ? "Church Operations" : scopeLabel;
 
   return (
     <>
       {activeTab === "overview" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Home Cells" value={cells.length} icon="🏠" />
-            <StatCard label="Total Members" value={members.length} icon="👥" />
-            <StatCard label="New Converts" value={newConverts.length} icon="🕊️" />
-            <StatCard label="Total Visitors" value={visitors.length} icon="🤝" />
-            <StatCard label="Meetings Held" value={meetings.length} icon="📅" />
-            <StatCard label="Prayer Requests" value={prayers.length} icon="🙏" />
-            <StatCard label="Follow Ups" value={followUps.length} icon="📞" />
-            <StatCard label="Testimonies" value={testimonies.length} icon="📖" />
-          </div>
-
-          {chartData.length > 0 && (
-            <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-              <h3 className="font-heading text-base font-bold text-foreground mb-4">Trends Over Time</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <LineChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Line type="monotone" dataKey="attendance" stroke="hsl(var(--primary))" strokeWidth={2} name="Attendance" />
-                    <Line type="monotone" dataKey="converts" stroke="#10b981" strokeWidth={2} name="New Converts" />
-                  </LineChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-        </div>
+        <OrgOverview
+          title={title}
+          subtitle="Here's what's happening in Winners Church today."
+          scopeLabel={scopeLabel}
+          userName={user.full_name}
+          cells={scopedCells}
+          members={members}
+          visitors={visitors}
+          newConverts={newConverts}
+          meetings={meetings}
+          reports={reports}
+          attendance={attendance}
+          onNavigate={onNavigate}
+          quickActions={quickActions}
+          performance={performance}
+        />
       )}
 
       {activeTab === "cells" && <CellsTab cells={cells} districts={districts} users={users} refresh={refresh} />}
       {activeTab === "zones" && <ZonesTab zones={zones} users={users} refresh={refresh} />}
       {activeTab === "districts" && <DistrictsTab districts={districts} zones={zones} users={users} refresh={refresh} />}
       {activeTab === "users" && <UsersTab users={users} cells={cells} refresh={refresh} />}
-      {activeTab === "members" && <MembersTab members={members} cells={cells} />}
-      {activeTab === "meetings" && <MeetingsTab meetings={meetings} cells={cells} />}
-      {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={cells} />}
-      {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={cells} />}
-      {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} cells={cells} />}
-      {activeTab === "followups" && <FollowUpsTab followUps={followUps} cells={cells} />}
-      {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={cells} />}
-      {activeTab === "offerings" && <OfferingsTab offerings={offerings} cells={cells} />}
-      {activeTab === "reports" && <ReportsTab reports={reports} cells={cells} />}
+      {activeTab === "members" && <MembersTab members={members} cells={scopedCells} />}
+      {activeTab === "meetings" && <MeetingsTab meetings={meetings} cells={scopedCells} />}
+      {activeTab === "attendance" && <AdminAttendanceTab cells={scopedCells} members={members} meetings={meetings} />}
+      {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={scopedCells} />}
+      {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={scopedCells} />}
+      {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} cells={scopedCells} />}
+      {activeTab === "followups" && <FollowUpsTab followUps={followUps} cells={scopedCells} />}
+      {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={scopedCells} />}
+      {activeTab === "offerings" && <OfferingsTab offerings={offerings} cells={scopedCells} />}
+      {activeTab === "reports" && <ReportsTab reports={reports} cells={scopedCells} />}
       {activeTab === "books" && <BooksTab books={books} refresh={refresh} />}
     </>
   );
@@ -455,79 +379,36 @@ interface CellLeaderDashboardProps {
   user: UserProfile;
   data: any;
   refresh: () => void;
+  onNavigate: (tab: string) => void;
 }
-function CellLeaderDashboard({ activeTab, user, data, refresh }: CellLeaderDashboardProps) {
+function CellLeaderDashboard({ activeTab, user, data, refresh, onNavigate }: CellLeaderDashboardProps) {
   if (!data || !data.cell) {
     return (
-      <div className="bg-card border border-border/40 rounded-2xl p-10 text-center shadow-sm">
-        <div className="w-14 h-14 bg-primary/5 rounded-full flex items-center justify-center mx-auto mb-4 text-xl">
-          🏠
-        </div>
-        <h3 className="font-heading text-lg font-bold text-foreground">No Cell Assigned</h3>
-        <p className="text-xs text-muted-foreground max-w-sm mx-auto mt-2">
-          Please contact your administrator to be assigned to a home cell.
-        </p>
-      </div>
+      <EmptyState
+        icon={Home}
+        title="No Cell Assigned"
+        description="Please contact your administrator to be assigned to a home cell."
+      />
     );
   }
 
-  const { cell, members, visitors, reports, meetings, newConverts, prayers, followUps, testimonies, offerings, requests } = data;
-
-  const chartData = reports.slice(0, 10).reverse().map((r: WeeklyReport) => ({
-    date: r.report_date,
-    attendance: r.members_present,
-    converts: r.new_converts,
-    offering: r.total_offering,
-  }));
+  const { cell, members, visitors, reports, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, attendanceRecords } = data;
 
   return (
     <>
       {activeTab === "overview" && (
-        <div className="space-y-6">
-          <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-            <h3 className="font-heading text-xl font-bold text-foreground mb-2">{cell.name}</h3>
-            <div className="text-sm text-muted-foreground space-y-1">
-              <p>📍 {cell.location} - {cell.address}</p>
-              <p>📅 {cell.meeting_day} at {cell.meeting_time}</p>
-            </div>
-          </div>
-
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Cell Members" value={members.length} icon="👥" />
-            <StatCard label="Visitors" value={visitors.length} icon="🤝" />
-            <StatCard label="New Converts" value={newConverts.length} icon="🕊️" />
-            <StatCard label="Meetings Held" value={meetings.length} icon="📅" />
-            <StatCard label="Prayer Requests" value={prayers.length} icon="🙏" />
-            <StatCard label="Follow Ups" value={followUps.length} icon="📞" />
-            <StatCard label="Testimonies" value={testimonies.length} icon="📖" />
-            <StatCard label="Reports Filed" value={reports.length} icon="📝" />
-          </div>
-
-          {chartData.length > 0 && (
-            <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-              <h3 className="font-heading text-base font-bold text-foreground mb-4">Cell Trends</h3>
-              <div className="h-64">
-                <ResponsiveContainer width="100%" height="100%">
-                  <BarChart data={chartData}>
-                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                    <XAxis dataKey="date" tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <YAxis tick={{ fontSize: 10 }} tickLine={false} axisLine={false} />
-                    <Tooltip
-                      contentStyle={{
-                        backgroundColor: "hsl(var(--card))",
-                        border: "1px solid hsl(var(--border))",
-                        borderRadius: "8px",
-                        fontSize: "12px",
-                      }}
-                    />
-                    <Bar dataKey="attendance" fill="hsl(var(--primary))" name="Attendance" />
-                    <Bar dataKey="converts" fill="#10b981" name="New Converts" />
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          )}
-        </div>
+        <CellLeaderOverview
+          userName={user.full_name}
+          cell={cell}
+          members={members}
+          visitors={visitors}
+          newConverts={newConverts}
+          meetings={meetings}
+          reports={reports}
+          attendance={attendanceRecords}
+          followUps={followUps}
+          onNavigate={onNavigate}
+        />
       )}
 
       {activeTab === "cell" && <CellDetailsTab cell={cell} refresh={refresh} />}
@@ -553,21 +434,23 @@ interface MediaDashboardProps {
   activeTab: string;
   data: any;
   refresh: () => void;
+  onNavigate: (tab: string) => void;
+  userName: string;
 }
-function MediaDashboard({ activeTab, data, refresh }: MediaDashboardProps) {
+function MediaDashboard({ activeTab, data, refresh, onNavigate, userName }: MediaDashboardProps) {
   const { events, announcements, sermons, books } = data;
 
   return (
     <>
       {activeTab === "overview" && (
-        <div className="space-y-6">
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <StatCard label="Upcoming Events" value={events.length} icon="📅" />
-            <StatCard label="Announcements" value={announcements.length} icon="📣" />
-            <StatCard label="Sermons" value={sermons.length} icon="📖" />
-            <StatCard label="Books" value={books.length} icon="📚" />
-          </div>
-        </div>
+        <MediaTeamOverview
+          userName={userName}
+          events={events}
+          announcements={announcements}
+          sermons={sermons}
+          books={books}
+          onNavigate={onNavigate}
+        />
       )}
 
       {activeTab === "events" && <EventsTab events={events} refresh={refresh} />}
@@ -1320,6 +1203,106 @@ function AttendanceTab({ cell, members, meetings, refresh }: { cell: HomeCell, m
           )}
         </div>
       </div>
+    </div>
+  );
+}
+
+// Admin/Pastor read-only Attendance Tab: pick a cell, pick a meeting, view who was marked present
+function AdminAttendanceTab({ cells, members, meetings }: { cells: HomeCell[], members: Member[], meetings: MeetingRecord[] }) {
+  const [selectedCellId, setSelectedCellId] = useState("");
+  const [selectedMeetingId, setSelectedMeetingId] = useState("");
+  const [records, setRecords] = useState<AttendanceRecord[] | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const cellMeetings = meetings.filter((m) => m.home_cell_id === selectedCellId);
+  const memberById = new Map(members.map((m) => [m.id, m]));
+
+  useEffect(() => {
+    if (!selectedMeetingId) {
+      setRecords(null);
+      return;
+    }
+    setLoading(true);
+    db.getAttendanceByMeeting(selectedMeetingId)
+      .then(setRecords)
+      .catch(() => {
+        toast.error("Failed to load attendance records");
+        setRecords([]);
+      })
+      .finally(() => setLoading(false));
+  }, [selectedMeetingId]);
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
+        <h3 className="font-heading text-base font-bold text-foreground mb-4">Attendance Records</h3>
+        {cells.length === 0 ? (
+          <p className="text-xs text-muted-foreground">No home cells yet. Add a home cell first.</p>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs">
+            <div>
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Home Cell</label>
+              <select
+                value={selectedCellId}
+                onChange={(e) => {
+                  setSelectedCellId(e.target.value);
+                  setSelectedMeetingId("");
+                }}
+                className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground"
+              >
+                <option value="">-- Select a Cell --</option>
+                {cells.map((c) => (
+                  <option key={c.id} value={c.id}>{c.name}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Meeting</label>
+              <select
+                value={selectedMeetingId}
+                onChange={(e) => setSelectedMeetingId(e.target.value)}
+                disabled={!selectedCellId}
+                className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground disabled:opacity-50"
+              >
+                <option value="">-- Select a Meeting --</option>
+                {cellMeetings.map((m) => (
+                  <option key={m.id} value={m.id}>{m.meeting_date} - {m.meeting_topic}</option>
+                ))}
+              </select>
+              {selectedCellId && cellMeetings.length === 0 && (
+                <p className="mt-1 text-[11px] text-muted-foreground">No meetings recorded for this cell yet.</p>
+              )}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {selectedMeetingId && (
+        <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
+          <h4 className="font-bold text-foreground mb-3 text-xs uppercase tracking-wide">Attendance</h4>
+          {loading ? (
+            <div className="flex items-center justify-center py-10">
+              <div className="animate-spin rounded-full h-6 w-6 border-2 border-primary border-t-transparent" />
+            </div>
+          ) : records && records.length > 0 ? (
+            <div className="space-y-2">
+              {records.map((r) => {
+                const m = memberById.get(r.member_id);
+                return (
+                  <div key={r.id} className="flex items-center justify-between p-2.5 bg-muted/5 rounded-lg text-xs">
+                    <span className="font-medium">{m ? `${m.first_name} ${m.last_name}` : "Unknown Member"}</span>
+                    <span className={r.present ? "font-bold text-green-600" : "font-medium text-muted-foreground"}>
+                      {r.present ? "Present" : "Absent"}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          ) : (
+            <p className="text-xs text-muted-foreground text-center py-6">No attendance recorded for this meeting yet.</p>
+          )}
+        </div>
+      )}
     </div>
   );
 }
@@ -2754,6 +2737,16 @@ function SermonsTab({ sermons, refresh }: { sermons: any[], refresh: () => void 
 
 // Books Tab
 function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
+  const handleApprove = async (id: string) => {
+    try {
+      await db.updateBook(id, { is_approved: true });
+      toast.success("Book approved and published.");
+      refresh();
+    } catch {
+      toast.error("Failed to approve book");
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
       <h3 className="font-heading text-base font-bold text-foreground mb-4">Books ({books.length})</h3>
@@ -2768,9 +2761,20 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
               </div>
             )}
             <div className="flex-1">
-              <h4 className="font-bold text-foreground">{b.title}</h4>
+              <div className="flex items-start justify-between gap-2">
+                <h4 className="font-bold text-foreground">{b.title}</h4>
+                <StatusBadge status={b.is_approved ? "approved" : "pending"} />
+              </div>
               <p className="text-xs text-muted-foreground">By {b.author}</p>
               {b.description && <p className="text-sm mt-1 line-clamp-2">{b.description}</p>}
+              {!b.is_approved && (
+                <button
+                  onClick={() => handleApprove(b.id)}
+                  className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                >
+                  Approve & Publish
+                </button>
+              )}
             </div>
           </div>
         ))}
