@@ -142,6 +142,46 @@ interface OrgOverviewProps {
   performance?: { title: string; rows: { label: string; members: number; attendanceRate: number; visitors: number }[] };
 }
 
+export function buildOrgAttentionItems(
+  params: { cells: HomeCell[]; members: Member[]; visitors: Visitor[]; meetings: MeetingRecord[]; reports: WeeklyReport[]; attendance: AttendanceRecord[] },
+  onNavigate: (tab: string) => void
+): AttentionItem[] {
+  const { cells, members, visitors, meetings, reports, attendance } = params;
+  const needFollowUp = visitorsNeedingFollowUp(visitors);
+  const missingReports = cellsMissingReports(cells, reports);
+  const absentMembers = consecutivelyAbsentMembers(members, meetings, attendance);
+
+  const items: AttentionItem[] = [];
+  if (absentMembers.length > 0) {
+    items.push({
+      severity: "critical",
+      title: `${absentMembers.length} member${absentMembers.length === 1 ? "" : "s"}`,
+      description: "Absent for the last 3 consecutive meetings",
+      actionLabel: "Review", onAction: () => onNavigate("members"),
+    });
+  }
+  if (needFollowUp.length > 0) {
+    items.push({
+      severity: "warning",
+      title: `${needFollowUp.length} visitor${needFollowUp.length === 1 ? "" : "s"}`,
+      description: "Need follow-up",
+      actionLabel: "Follow Up", onAction: () => onNavigate("visitors"),
+    });
+  }
+  if (missingReports.length > 0 && cells.length > 0) {
+    items.push({
+      severity: "warning",
+      title: `${missingReports.length} cell${missingReports.length === 1 ? "" : "s"}`,
+      description: "Haven't submitted a weekly report in 7+ days",
+      actionLabel: "Review", onAction: () => onNavigate("reports"),
+    });
+  }
+  if (reports.some((r) => withinDays(r.report_date, 7))) {
+    items.push({ severity: "success", title: "Attendance", description: "This week's attendance has been recorded" });
+  }
+  return items;
+}
+
 export function OrgOverview({
   title, subtitle, scopeLabel, userName, cells, members, visitors, newConverts,
   meetings, reports, attendance, onNavigate, quickActions, performance,
@@ -158,38 +198,7 @@ export function OrgOverview({
   const reporting = reportingRate(cells, reports);
   const overallHealth = Math.round((currentAttendanceRate + followUp + cellActivity + reporting) / 4);
 
-  const needFollowUp = visitorsNeedingFollowUp(visitors);
-  const missingReports = cellsMissingReports(cells, reports);
-  const absentMembers = consecutivelyAbsentMembers(members, meetings, attendance);
-
-  const attentionItems: AttentionItem[] = [];
-  if (absentMembers.length > 0) {
-    attentionItems.push({
-      severity: "critical",
-      title: `${absentMembers.length} member${absentMembers.length === 1 ? "" : "s"}`,
-      description: "Absent for the last 3 consecutive meetings",
-      actionLabel: "Review", onAction: () => onNavigate("members"),
-    });
-  }
-  if (needFollowUp.length > 0) {
-    attentionItems.push({
-      severity: "warning",
-      title: `${needFollowUp.length} visitor${needFollowUp.length === 1 ? "" : "s"}`,
-      description: "Need follow-up",
-      actionLabel: "Follow Up", onAction: () => onNavigate("visitors"),
-    });
-  }
-  if (missingReports.length > 0 && cells.length > 0) {
-    attentionItems.push({
-      severity: "warning",
-      title: `${missingReports.length} cell${missingReports.length === 1 ? "" : "s"}`,
-      description: "Haven't submitted a weekly report in 7+ days",
-      actionLabel: "Review", onAction: () => onNavigate("reports"),
-    });
-  }
-  if (reports.some((r) => withinDays(r.report_date, 7))) {
-    attentionItems.push({ severity: "success", title: "Attendance", description: "This week's attendance has been recorded" });
-  }
+  const attentionItems = buildOrgAttentionItems({ cells, members, visitors, meetings, reports, attendance }, onNavigate);
 
   return (
     <div className="space-y-6">
@@ -344,32 +353,28 @@ interface CellOverviewProps {
   onNavigate: (tab: string) => void;
 }
 
-export function CellLeaderOverview({
-  userName, cell, members, visitors, newConverts, meetings, reports, attendance, onNavigate,
-}: CellOverviewProps) {
-  const currentAttendanceRate = attendanceRateFromRecords(attendance);
-  const followUp = followUpRate(visitors);
-  const reporting = reports.some((r) => withinDays(r.report_date, 7)) ? 100 : 0;
-  const memberActivity = (() => {
-    const recent3 = [...meetings].sort((a, b) => new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime()).slice(0, 3);
-    if (recent3.length === 0 || members.length === 0) return 0;
-    const activeIds = new Set(
-      attendance.filter((a) => recent3.some((m) => m.id === a.meeting_record_id) && a.present).map((a) => a.member_id)
-    );
-    return pct(activeIds.size, members.length);
-  })();
-  const overallHealth = Math.round((currentAttendanceRate + followUp + memberActivity + reporting) / 4);
+function cellMemberActivityRate(members: Member[], meetings: MeetingRecord[], attendance: AttendanceRecord[]): number {
+  const recent3 = [...meetings].sort((a, b) => new Date(b.meeting_date).getTime() - new Date(a.meeting_date).getTime()).slice(0, 3);
+  if (recent3.length === 0 || members.length === 0) return 0;
+  const activeIds = new Set(
+    attendance.filter((a) => recent3.some((m) => m.id === a.meeting_record_id) && a.present).map((a) => a.member_id)
+  );
+  return pct(activeIds.size, members.length);
+}
 
+export function buildCellAttentionItems(
+  params: { members: Member[]; visitors: Visitor[]; newConverts: NewConvert[]; meetings: MeetingRecord[]; reports: WeeklyReport[]; attendance: AttendanceRecord[] },
+  onNavigate: (tab: string) => void
+): AttentionItem[] {
+  const { members, visitors, newConverts, meetings, reports, attendance } = params;
   const needFollowUp = visitorsNeedingFollowUp(visitors);
   const absentMembers = consecutivelyAbsentMembers(members, meetings, attendance);
   const pendingConverts = newConverts.filter((c) => c.foundation_class_status === "not_started");
-  const upcomingMeeting = [...meetings]
-    .filter((m) => new Date(m.meeting_date).getTime() >= Date.now() - 24 * 60 * 60 * 1000)
-    .sort((a, b) => new Date(a.meeting_date).getTime() - new Date(b.meeting_date).getTime())[0];
+  const reporting = reports.some((r) => withinDays(r.report_date, 7));
 
-  const attentionItems: AttentionItem[] = [];
+  const items: AttentionItem[] = [];
   if (absentMembers.length > 0) {
-    attentionItems.push({
+    items.push({
       severity: "critical",
       title: `${absentMembers.length} member${absentMembers.length === 1 ? "" : "s"}`,
       description: "Haven't attended the last 3 meetings",
@@ -377,7 +382,7 @@ export function CellLeaderOverview({
     });
   }
   if (needFollowUp.length > 0) {
-    attentionItems.push({
+    items.push({
       severity: "warning",
       title: `${needFollowUp.length} visitor${needFollowUp.length === 1 ? "" : "s"}`,
       description: "Need follow-up",
@@ -385,23 +390,40 @@ export function CellLeaderOverview({
     });
   }
   if (pendingConverts.length > 0) {
-    attentionItems.push({
+    items.push({
       severity: "info",
       title: `${pendingConverts.length} new convert${pendingConverts.length === 1 ? "" : "s"}`,
       description: "Haven't started foundation class",
       actionLabel: "Review", onAction: () => onNavigate("converts"),
     });
   }
-  if (reporting === 0) {
-    attentionItems.push({
+  if (!reporting) {
+    items.push({
       severity: "warning",
       title: "Weekly report",
       description: "Not yet submitted for this week",
       actionLabel: "Submit", onAction: () => onNavigate("reports"),
     });
   } else {
-    attentionItems.push({ severity: "success", title: "Weekly report", description: "Submitted this week" });
+    items.push({ severity: "success", title: "Weekly report", description: "Submitted this week" });
   }
+  return items;
+}
+
+export function CellLeaderOverview({
+  userName, cell, members, visitors, newConverts, meetings, reports, attendance, onNavigate,
+}: CellOverviewProps) {
+  const currentAttendanceRate = attendanceRateFromRecords(attendance);
+  const followUp = followUpRate(visitors);
+  const reporting = reports.some((r) => withinDays(r.report_date, 7)) ? 100 : 0;
+  const memberActivity = cellMemberActivityRate(members, meetings, attendance);
+  const overallHealth = Math.round((currentAttendanceRate + followUp + memberActivity + reporting) / 4);
+
+  const upcomingMeeting = [...meetings]
+    .filter((m) => new Date(m.meeting_date).getTime() >= Date.now() - 24 * 60 * 60 * 1000)
+    .sort((a, b) => new Date(a.meeting_date).getTime() - new Date(b.meeting_date).getTime())[0];
+
+  const attentionItems = buildCellAttentionItems({ members, visitors, newConverts, meetings, reports, attendance }, onNavigate);
 
   return (
     <div className="space-y-6">
@@ -471,14 +493,18 @@ interface MediaOverviewProps {
   onNavigate: (tab: string) => void;
 }
 
-export function MediaTeamOverview({ userName, events, announcements, sermons, books, onNavigate }: MediaOverviewProps) {
+export function buildMediaAttentionItems(
+  params: { events: ChurchEvent[]; books: Book[] },
+  onNavigate: (tab: string) => void
+): AttentionItem[] {
+  const { events, books } = params;
   const upcomingEvents = events.filter((e) => new Date(e.event_date).getTime() >= Date.now());
   const pendingBooks = books.filter((b) => !b.is_approved);
   const nextEvent = [...upcomingEvents].sort((a, b) => new Date(a.event_date).getTime() - new Date(b.event_date).getTime())[0];
 
-  const attentionItems: AttentionItem[] = [];
+  const items: AttentionItem[] = [];
   if (pendingBooks.length > 0) {
-    attentionItems.push({
+    items.push({
       severity: "warning",
       title: `${pendingBooks.length} book${pendingBooks.length === 1 ? "" : "s"}`,
       description: "Awaiting approval before publishing",
@@ -487,13 +513,20 @@ export function MediaTeamOverview({ userName, events, announcements, sermons, bo
   }
   if (nextEvent) {
     const daysAway = Math.round((new Date(nextEvent.event_date).getTime() - Date.now()) / (24 * 60 * 60 * 1000));
-    attentionItems.push({
+    items.push({
       severity: daysAway <= 1 ? "critical" : "info",
       title: nextEvent.title,
       description: daysAway <= 0 ? "Happening today" : daysAway === 1 ? "Starts tomorrow" : `In ${daysAway} days`,
       actionLabel: "View", onAction: () => onNavigate("events"),
     });
   }
+  return items;
+}
+
+export function MediaTeamOverview({ userName, events, announcements, sermons, books, onNavigate }: MediaOverviewProps) {
+  const upcomingEvents = events.filter((e) => new Date(e.event_date).getTime() >= Date.now());
+  const pendingBooks = books.filter((b) => !b.is_approved);
+  const attentionItems = buildMediaAttentionItems({ events, books }, onNavigate);
 
   return (
     <div className="space-y-6">

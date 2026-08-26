@@ -1,5 +1,5 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 import { Menu, LogOut, Home } from "lucide-react";
 import {
@@ -33,7 +33,11 @@ import StatusBadge from "@/components/dashboard/StatusBadge";
 import {
   OrgOverview, CellLeaderOverview, MediaTeamOverview,
   buildOrgAdminQuickActions, buildSupervisorQuickActions, attendanceRateFromRecords,
+  buildOrgAttentionItems, buildCellAttentionItems, buildMediaAttentionItems,
 } from "@/components/dashboard/RoleOverviews";
+import NotificationBell from "@/components/dashboard/NotificationBell";
+import GlobalSearch, { type SearchResult } from "@/components/dashboard/GlobalSearch";
+import type { AttentionItem } from "@/components/dashboard/AttentionList";
 
 export const Route = createFileRoute("/dashboard/")({
   component: DashboardHome,
@@ -172,6 +176,49 @@ function DashboardHome() {
     loadData();
   }, [user, triggerRefresh]);
 
+  // Real notification items, reusing the exact same calculations the overview
+  // pages use - no separate/fabricated notification data source.
+  const attentionItems: AttentionItem[] = useMemo(() => {
+    if (!user) return [];
+    if ((user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") && pastorData) {
+      return buildOrgAttentionItems(
+        { cells, members: pastorData.members, visitors: pastorData.visitors, meetings: pastorData.meetings, reports: pastorData.reports, attendance: pastorData.attendance },
+        setActiveTab
+      );
+    }
+    if ((user.role === "cell_leader" || user.role === "assistant_leader") && cellLeaderData) {
+      return buildCellAttentionItems(
+        { members: cellLeaderData.members, visitors: cellLeaderData.visitors, newConverts: cellLeaderData.newConverts, meetings: cellLeaderData.meetings, reports: cellLeaderData.reports, attendance: cellLeaderData.attendanceRecords },
+        setActiveTab
+      );
+    }
+    if (user.role === "media_team" && mediaData) {
+      return buildMediaAttentionItems({ events: mediaData.events, books: mediaData.books }, setActiveTab);
+    }
+    return [];
+  }, [user, cells, pastorData, cellLeaderData, mediaData]);
+
+  // Real search index built from whatever data this role has actually loaded.
+  const searchItems: SearchResult[] = useMemo(() => {
+    const results: SearchResult[] = [];
+    if (pastorData) {
+      cells.forEach((c: HomeCell) => results.push({ id: `cell-${c.id}`, label: c.name, sublabel: c.location, group: "Home Cells", tabId: "cells" }));
+      pastorData.members.forEach((m: Member) => results.push({ id: `member-${m.id}`, label: `${m.first_name} ${m.last_name}`, sublabel: m.phone_number, group: "Members", tabId: "members" }));
+      pastorData.visitors.forEach((v: Visitor) => results.push({ id: `visitor-${v.id}`, label: v.full_name, sublabel: v.phone_number, group: "Visitors", tabId: "visitors" }));
+    }
+    if (cellLeaderData?.cell) {
+      cellLeaderData.members.forEach((m: Member) => results.push({ id: `member-${m.id}`, label: `${m.first_name} ${m.last_name}`, sublabel: m.phone_number, group: "Members", tabId: "members" }));
+      cellLeaderData.visitors.forEach((v: Visitor) => results.push({ id: `visitor-${v.id}`, label: v.full_name, sublabel: v.phone_number, group: "Visitors", tabId: "visitors" }));
+    }
+    if (mediaData) {
+      mediaData.events.forEach((e: ChurchEvent) => results.push({ id: `event-${e.id}`, label: e.title, sublabel: e.event_date, group: "Events", tabId: "events" }));
+      mediaData.announcements.forEach((a: Announcement) => results.push({ id: `ann-${a.id}`, label: a.title, group: "Announcements", tabId: "announcements" }));
+      mediaData.sermons.forEach((s: Sermon) => results.push({ id: `sermon-${s.id}`, label: s.title, sublabel: s.preacher, group: "Sermons", tabId: "sermons" }));
+      mediaData.books.forEach((b: Book) => results.push({ id: `book-${b.id}`, label: b.title, sublabel: b.author, group: "Books", tabId: "books" }));
+    }
+    return results;
+  }, [cells, pastorData, cellLeaderData, mediaData]);
+
   if (!user) return null;
 
   return (
@@ -199,9 +246,10 @@ function DashboardHome() {
             >
               <Menu className="h-5 w-5" />
             </button>
-            <span className="hidden sm:inline text-sm font-semibold text-foreground">Church Portal</span>
+            <GlobalSearch items={searchItems} onSelect={setActiveTab} />
           </div>
-          <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2 sm:gap-3">
+            <NotificationBell items={attentionItems} />
             <div className="text-right hidden sm:block">
               <div className="text-xs font-bold text-foreground leading-tight">{user.full_name}</div>
               <div className="text-[10px] text-muted-foreground font-medium">{roleLabel(user.role)}</div>
