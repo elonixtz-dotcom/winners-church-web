@@ -9,6 +9,7 @@ CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 -- Clean existing tables if needed (doing a fresh reset) - reverse order of dependencies
 DROP TABLE IF EXISTS prayer_wall_requests CASCADE;
 DROP TABLE IF EXISTS cell_membership_requests CASCADE;
+DROP TABLE IF EXISTS sermons CASCADE;
 DROP TABLE IF EXISTS announcements CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
 DROP TABLE IF EXISTS books CASCADE;
@@ -334,6 +335,20 @@ CREATE TABLE announcements (
 );
 
 -- =========================================================================
+-- 17b. SERMONS TABLE (For public / homepage - existing in db.ts but was
+-- never actually defined here, so it never existed on the live database)
+-- =========================================================================
+CREATE TABLE sermons (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    title TEXT NOT NULL,
+    preacher TEXT NOT NULL,
+    scripture TEXT NOT NULL,
+    date DATE NOT NULL,
+    video_url TEXT,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- =========================================================================
 -- 18. CELL MEMBERSHIP REQUESTS TABLE (Existing)
 -- =========================================================================
 CREATE TABLE cell_membership_requests (
@@ -430,6 +445,7 @@ ALTER TABLE weekly_reports ENABLE ROW LEVEL SECURITY;
 ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
+ALTER TABLE sermons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cell_membership_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prayer_wall_requests ENABLE ROW LEVEL SECURITY;
 
@@ -697,6 +713,14 @@ CREATE POLICY "Media, pastors, and admins can manage events" ON events FOR ALL U
 -- =========================================================================
 CREATE POLICY "Anyone can read announcements" ON announcements FOR SELECT USING (true);
 CREATE POLICY "Media, pastors, and admins can manage announcements" ON announcements FOR ALL USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'media_team')
+);
+
+-- =========================================================================
+-- SERMONS POLICIES
+-- =========================================================================
+CREATE POLICY "Anyone can read sermons" ON sermons FOR SELECT USING (true);
+CREATE POLICY "Media, pastors, and admins can manage sermons" ON sermons FOR ALL USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'media_team')
 );
 
