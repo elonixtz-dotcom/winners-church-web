@@ -55,10 +55,13 @@ const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     "meetings.view", "attendance.view", "followups.view", "prayers.view", "testimonies.view",
     "finance.view", "reports.view", "requests.view",
   ],
+  // Assistant leaders get the same day-to-day people/ministry access as a
+  // cell leader, but not "finance.view" (offerings) - see the RLS policies
+  // in supabase_schema.sql, which are the layer that actually enforces this.
   assistant_leader: [
     "dashboard.view", "members.view", "visitors.view", "converts.view", "cells.view",
     "meetings.view", "attendance.view", "followups.view", "prayers.view", "testimonies.view",
-    "finance.view", "reports.view", "requests.view",
+    "reports.view", "requests.view",
   ],
   media_team: [
     "dashboard.view", "events.view", "announcements.view", "sermons.view", "books.view",

@@ -156,7 +156,14 @@ function DashboardHome() {
         }
       } catch (err) {
         console.error("Error loading dashboard data", err);
-        setDataError(err instanceof Error ? err.message : "Failed to load dashboard data.");
+        // Supabase's PostgrestError is a plain object with a .message, not an
+        // Error instance, so `err instanceof Error` misses it and was always
+        // falling back to the generic message below - check for .message too.
+        const message =
+          err instanceof Error ? err.message
+          : (err && typeof err === "object" && "message" in err && typeof (err as any).message === "string") ? (err as any).message
+          : "Failed to load dashboard data.";
+        setDataError(message);
       } finally {
         setDataLoading(false);
       }
@@ -411,7 +418,7 @@ function CellLeaderDashboard({ activeTab, user, data, refresh, onNavigate }: Cel
         />
       )}
 
-      {activeTab === "cell" && <CellDetailsTab cell={cell} refresh={refresh} />}
+      {activeTab === "cell" && <CellDetailsTab cell={cell} refresh={refresh} canEdit={user.role === "cell_leader"} />}
       {activeTab === "meetings" && <MeetingsTab meetings={meetings} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "attendance" && <AttendanceTab cell={cell} members={members} meetings={meetings} refresh={refresh} />}
       {activeTab === "members" && <MembersTab members={members} cells={[cell]} cellId={cell.id} refresh={refresh} />}
@@ -420,7 +427,7 @@ function CellLeaderDashboard({ activeTab, user, data, refresh, onNavigate }: Cel
       {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "followups" && <FollowUpsTab followUps={followUps} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={[cell]} cellId={cell.id} refresh={refresh} />}
-      {activeTab === "offerings" && <OfferingsTab offerings={offerings} cells={[cell]} cellId={cell.id} refresh={refresh} />}
+      {activeTab === "offerings" && user.role === "cell_leader" && <OfferingsTab offerings={offerings} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "reports" && <ReportsTab reports={reports} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "requests" && <RequestsTab requests={requests} cell={cell} refresh={refresh} />}
     </>
@@ -2490,7 +2497,7 @@ function ReportsTab({ reports, cells, cellId, refresh }: { reports: WeeklyReport
 }
 
 // Cell Details Tab
-function CellDetailsTab({ cell, refresh }: { cell: HomeCell, refresh: () => void }) {
+function CellDetailsTab({ cell, refresh, canEdit = true }: { cell: HomeCell, refresh: () => void, canEdit?: boolean }) {
   const [editing, setEditing] = useState(false);
   const [form, setForm] = useState<Partial<HomeCell>>(cell);
 
@@ -2511,14 +2518,21 @@ function CellDetailsTab({ cell, refresh }: { cell: HomeCell, refresh: () => void
       <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
         <div className="flex justify-between items-center mb-4">
           <h3 className="font-heading text-base font-bold text-foreground">Cell Details</h3>
+          {!canEdit && (
+            <span className="text-[10px] font-semibold text-muted-foreground uppercase tracking-wide">
+              View only
+            </span>
+          )}
+          {canEdit && (
           <button
             onClick={() => editing ? setEditing(false) : setEditing(true)}
             className="text-xs px-3 py-1 bg-primary/10 text-primary rounded font-semibold"
           >
             {editing ? "Cancel" : "Edit"}
           </button>
+          )}
         </div>
-        {editing ? (
+        {editing && canEdit ? (
           <form onSubmit={handleSubmit} className="space-y-4 text-xs">
             <div>
               <label className="block font-bold text-muted-foreground uppercase mb-1">Cell Name</label>

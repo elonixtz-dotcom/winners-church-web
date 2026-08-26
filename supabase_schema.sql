@@ -466,20 +466,35 @@ CREATE POLICY "All authenticated users can read cells" ON home_cells FOR SELECT 
 CREATE POLICY "Super admins, church admins, zone, and district pastors can manage cells" ON home_cells FOR ALL USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can edit their cell info" ON home_cells FOR UPDATE USING (
-    leader_id = auth.uid() OR assistant_leader_id = auth.uid() OR
+-- Only the cell leader (not the assistant) can edit the cell's own admin details (name, schedule, etc).
+CREATE POLICY "Cell leader can edit their cell info" ON home_cells FOR UPDATE USING (
+    (leader_id = auth.uid() AND public.get_user_role(auth.uid()) = 'cell_leader') OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
 
 -- =========================================================================
 -- MEMBERS POLICIES
+-- Cell leaders and assistants both get full view/add/edit access to their cell's
+-- records; only the cell leader (not the assistant) can delete records - a
+-- deliberately narrower permission set for the assistant role.
 -- =========================================================================
 CREATE POLICY "Super admins, church admins, zone, district pastors can read all members" ON members FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell members" ON members FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell members" ON members FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell members" ON members FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell members" ON members FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell members" ON members FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -488,9 +503,20 @@ CREATE POLICY "Cell leaders and assistants can manage their cell members" ON mem
 CREATE POLICY "Pastors and admins can read all meeting records" ON meeting_records FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell meeting records" ON meeting_records FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell meeting records" ON meeting_records FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell meeting records" ON meeting_records FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell meeting records" ON meeting_records FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell meeting records" ON meeting_records FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -499,9 +525,20 @@ CREATE POLICY "Cell leaders and assistants can manage their cell meeting records
 CREATE POLICY "Pastors and admins can read all attendance" ON attendance FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell attendance" ON attendance FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell attendance" ON attendance FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell attendance" ON attendance FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell attendance" ON attendance FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell attendance" ON attendance FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -510,9 +547,20 @@ CREATE POLICY "Cell leaders and assistants can manage their cell attendance" ON 
 CREATE POLICY "Pastors and admins can read all visitors" ON visitors FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell visitors" ON visitors FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell visitors" ON visitors FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell visitors" ON visitors FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell visitors" ON visitors FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell visitors" ON visitors FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -521,9 +569,20 @@ CREATE POLICY "Cell leaders and assistants can manage their cell visitors" ON vi
 CREATE POLICY "Pastors and admins can read all new converts" ON new_converts FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell new converts" ON new_converts FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell new converts" ON new_converts FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell new converts" ON new_converts FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell new converts" ON new_converts FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell new converts" ON new_converts FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -532,9 +591,20 @@ CREATE POLICY "Cell leaders and assistants can manage their cell new converts" O
 CREATE POLICY "Pastors and admins can read all prayer requests" ON prayer_requests FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell prayer requests" ON prayer_requests FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell prayer requests" ON prayer_requests FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell prayer requests" ON prayer_requests FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell prayer requests" ON prayer_requests FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell prayer requests" ON prayer_requests FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -543,9 +613,20 @@ CREATE POLICY "Cell leaders and assistants can manage their cell prayer requests
 CREATE POLICY "Pastors and admins can read all follow ups" ON follow_ups FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell follow ups" ON follow_ups FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell follow ups" ON follow_ups FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell follow ups" ON follow_ups FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell follow ups" ON follow_ups FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell follow ups" ON follow_ups FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
@@ -555,19 +636,32 @@ CREATE POLICY "Anyone can read approved public testimonies" ON testimonies FOR S
 CREATE POLICY "Pastors and admins can read all testimonies" ON testimonies FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell testimonies" ON testimonies FOR ALL USING (
+CREATE POLICY "Cell leaders and assistants can view their cell testimonies" ON testimonies FOR SELECT USING (
+    home_cell_id = public.get_user_home_cell(auth.uid())
+);
+CREATE POLICY "Cell leaders and assistants can add their cell testimonies" ON testimonies FOR INSERT WITH CHECK (
     home_cell_id = public.get_user_home_cell(auth.uid()) OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Cell leaders and assistants can edit their cell testimonies" ON testimonies FOR UPDATE USING (
+    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Only cell leader can delete their cell testimonies" ON testimonies FOR DELETE USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 
 -- =========================================================================
 -- OFFERINGS POLICIES
+-- Financial records - the assistant leader role is deliberately excluded
+-- entirely (no view/add/edit/delete), unlike the other cell tables above.
 -- =========================================================================
 CREATE POLICY "Super admins and church admins can read all offerings" ON offerings FOR SELECT USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
-CREATE POLICY "Cell leaders and assistants can manage their cell offerings" ON offerings FOR ALL USING (
-    home_cell_id = public.get_user_home_cell(auth.uid()) OR
+CREATE POLICY "Cell leader can manage their cell offerings" ON offerings FOR ALL USING (
+    (home_cell_id = public.get_user_home_cell(auth.uid()) AND public.get_user_role(auth.uid()) = 'cell_leader') OR
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
 

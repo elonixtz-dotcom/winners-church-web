@@ -106,7 +106,9 @@ export function getDashboardNav(role: Role): NavGroup[] {
             { id: "testimonies", label: "Testimonies", icon: BookOpen },
           ],
         },
-        { group: "Finance", items: [{ id: "offerings", label: "Offerings", icon: Wallet }] },
+        // Offerings are financial records - only the cell leader manages them,
+        // not the assistant (matches the RLS policies in supabase_schema.sql).
+        ...(role === "cell_leader" ? [{ group: "Finance", items: [{ id: "offerings", label: "Offerings", icon: Wallet }] }] : []),
         {
           group: "Insights", items: [
             { id: "reports", label: "Reports", icon: BarChart3 },
