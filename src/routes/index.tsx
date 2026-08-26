@@ -2,10 +2,8 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import churchLogo from "@/assets/winners-logo.png";
 import congregationPrayer from "@/assets/congregation-prayer.jpg";
-import spiritualEmphasis from "@/assets/spiritual-emphasis.jpg";
 import choirWorship from "@/assets/choir-worship.jpg";
 import vengeanceService from "@/assets/vengeance-service.jpg";
-import liberationMandate from "@/assets/liberation-mandate.jpg";
 import liberationService from "@/assets/liberation-service.jpg";
 import covenantFamily from "@/assets/covenant-family.jpg";
 import covenantFamilyDay from "@/assets/covenant-family-day.jpg";
@@ -15,10 +13,27 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+const heroPhotos = [
+  congregationPrayer,
+  choirWorship,
+  vengeanceService,
+  liberationService,
+  covenantFamily,
+  covenantFamilyDay,
+];
+
 function HomePage() {
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
+  const [heroIndex, setHeroIndex] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setHeroIndex((i) => (i + 1) % heroPhotos.length);
+    }, 5000);
+    return () => clearInterval(interval);
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -47,11 +62,16 @@ function HomePage() {
     <>
       {/* Hero Section */}
       <section className="relative h-[80vh] min-h-[500px] flex items-center justify-center overflow-hidden">
-        <img
-          src={congregationPrayer}
-          alt="Worship at Winners Chapel Dar es Salaam"
-          className="absolute inset-0 w-full h-full object-cover"
-        />
+        {heroPhotos.map((src, i) => (
+          <img
+            key={src}
+            src={src}
+            alt="Worship at Winners Chapel Dar es Salaam"
+            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+              i === heroIndex ? "opacity-100" : "opacity-0"
+            }`}
+          />
+        ))}
         <div className="absolute inset-0 bg-hero-overlay" />
         <div className="relative z-10 text-center px-4 max-w-4xl mx-auto">
           <img src={churchLogo} alt="Winners Church" className="h-24 w-24 mx-auto mb-6 animate-fade-in-up" />
@@ -254,7 +274,6 @@ function HomePage() {
               { src: choirWorship, alt: "Choir leading worship", label: "Worship" },
               { src: vengeanceService, alt: "Anointing service", label: "Anointing" },
               { src: congregationPrayer, alt: "Congregation in prayer", label: "Prayer" },
-              { src: liberationMandate, alt: "Liberation Mandate", label: "Liberation Mandate" },
               { src: liberationService, alt: "Thanksgiving service", label: "Thanksgiving" },
               { src: covenantFamily, alt: "Family Day fellowship", label: "Family Day" },
               { src: covenantFamilyDay, alt: "Pastors ministering", label: "Ministries" },

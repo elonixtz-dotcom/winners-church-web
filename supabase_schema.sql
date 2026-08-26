@@ -7,6 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Clean existing tables if needed (doing a fresh reset) - reverse order of dependencies
+DROP TABLE IF EXISTS prayer_wall_requests CASCADE;
 DROP TABLE IF EXISTS cell_membership_requests CASCADE;
 DROP TABLE IF EXISTS announcements CASCADE;
 DROP TABLE IF EXISTS events CASCADE;
@@ -353,6 +354,24 @@ CREATE TABLE cell_membership_requests (
 );
 
 -- =========================================================================
+-- 19. PRAYER WALL REQUESTS TABLE (Public website submissions — not tied to a home cell)
+-- =========================================================================
+CREATE TABLE prayer_wall_requests (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    full_name TEXT NOT NULL,
+    phone_number TEXT,
+    email TEXT,
+    category TEXT NOT NULL DEFAULT 'general' CHECK (
+        category IN ('salvation', 'healing', 'deliverance', 'finances', 'family', 'career', 'spiritual_growth', 'general')
+    ),
+    request TEXT NOT NULL,
+    is_confidential BOOLEAN DEFAULT FALSE NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'in_prayer', 'answered', 'closed')),
+    handled_by UUID REFERENCES users(id) ON DELETE SET NULL,
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- =========================================================================
 -- INDEXES FOR PERFORMANCE
 -- =========================================================================
 CREATE INDEX idx_home_cells_district ON home_cells(district_id);
@@ -412,6 +431,7 @@ ALTER TABLE books ENABLE ROW LEVEL SECURITY;
 ALTER TABLE events ENABLE ROW LEVEL SECURITY;
 ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cell_membership_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE prayer_wall_requests ENABLE ROW LEVEL SECURITY;
 
 -- =========================================================================
 -- ZONES POLICIES
@@ -437,6 +457,7 @@ CREATE POLICY "Super admins and church admins can manage users" ON users FOR ALL
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 CREATE POLICY "Users can edit their own profile" ON users FOR UPDATE USING (id = auth.uid());
+CREATE POLICY "Users can insert their own profile" ON users FOR INSERT WITH CHECK (id = auth.uid());
 
 -- =========================================================================
 -- HOME CELLS POLICIES
@@ -601,6 +622,20 @@ CREATE POLICY "Cell leaders, assistants, and admins can manage requests for thei
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
 CREATE POLICY "Pastors and admins can delete requests" ON cell_membership_requests FOR DELETE USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
+);
+
+-- =========================================================================
+-- PRAYER WALL REQUESTS POLICIES
+-- =========================================================================
+CREATE POLICY "Anyone can submit a prayer request" ON prayer_wall_requests FOR INSERT WITH CHECK (true);
+CREATE POLICY "Pastors and admins can view prayer wall requests" ON prayer_wall_requests FOR SELECT USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Pastors and admins can manage prayer wall requests" ON prayer_wall_requests FOR UPDATE USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Admins can delete prayer wall requests" ON prayer_wall_requests FOR DELETE USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 

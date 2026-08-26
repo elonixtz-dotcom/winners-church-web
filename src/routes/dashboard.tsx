@@ -59,7 +59,8 @@ function DashboardLayout() {
   // Render role friendly labels
   const getRoleLabel = (role: UserProfile["role"]) => {
     switch (role) {
-      case "pastor_admin":
+      case "church_admin":
+      case "super_admin":
         return "Pastor / Admin";
       case "media_team":
         return "Media Coordinator";

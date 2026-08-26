@@ -13,6 +13,7 @@ import { Route as ServicesRouteImport } from './routes/services'
 import { Route as SermonsRouteImport } from './routes/sermons'
 import { Route as PillarsRouteImport } from './routes/pillars'
 import { Route as LoginRouteImport } from './routes/login'
+import { Route as PrayerRequestRouteImport } from './routes/prayer-request'
 import { Route as JoinCellRouteImport } from './routes/join-cell'
 import { Route as EventsRouteImport } from './routes/events'
 import { Route as DashboardRouteImport } from './routes/dashboard'
@@ -38,6 +39,9 @@ const LoginRoute = LoginRouteImport.update({
           }as any)
 const JoinCellRoute = JoinCellRouteImport.update({
             id: '/join-cell',path: '/join-cell',getParentRoute: () => rootRouteImport
+          }as any)
+const PrayerRequestRoute = PrayerRequestRouteImport.update({
+            id: '/prayer-request',path: '/prayer-request',getParentRoute: () => rootRouteImport
           }as any)
 const EventsRoute = EventsRouteImport.update({
             id: '/events',path: '/events',getParentRoute: () => rootRouteImport
@@ -68,25 +72,25 @@ const BooksBookIdRoute = BooksBookIdRouteImport.update({
           }as any)
 
 export interface FileRoutesByFullPath {
-'/': typeof IndexRoute,'/about': typeof AboutRoute,'/books': typeof BooksRouteWithChildren,'/branches': typeof BranchesRoute,'/contact': typeof ContactRoute,'/dashboard': typeof DashboardRouteWithChildren,'/events': typeof EventsRoute,'/join-cell': typeof JoinCellRoute,'/login': typeof LoginRoute,'/pillars': typeof PillarsRoute,'/sermons': typeof SermonsRoute,'/services': typeof ServicesRoute,'/books/$bookId': typeof BooksBookIdRoute
+'/': typeof IndexRoute,'/about': typeof AboutRoute,'/books': typeof BooksRouteWithChildren,'/branches': typeof BranchesRoute,'/contact': typeof ContactRoute,'/dashboard': typeof DashboardRouteWithChildren,'/events': typeof EventsRoute,'/join-cell': typeof JoinCellRoute,'/prayer-request': typeof PrayerRequestRoute,'/login': typeof LoginRoute,'/pillars': typeof PillarsRoute,'/sermons': typeof SermonsRoute,'/services': typeof ServicesRoute,'/books/$bookId': typeof BooksBookIdRoute
 }
 export interface FileRoutesByTo {
-'/': typeof IndexRoute,'/about': typeof AboutRoute,'/books': typeof BooksRouteWithChildren,'/branches': typeof BranchesRoute,'/contact': typeof ContactRoute,'/dashboard': typeof DashboardRouteWithChildren,'/events': typeof EventsRoute,'/join-cell': typeof JoinCellRoute,'/login': typeof LoginRoute,'/pillars': typeof PillarsRoute,'/sermons': typeof SermonsRoute,'/services': typeof ServicesRoute,'/books/$bookId': typeof BooksBookIdRoute
+'/': typeof IndexRoute,'/about': typeof AboutRoute,'/books': typeof BooksRouteWithChildren,'/branches': typeof BranchesRoute,'/contact': typeof ContactRoute,'/dashboard': typeof DashboardRouteWithChildren,'/events': typeof EventsRoute,'/join-cell': typeof JoinCellRoute,'/prayer-request': typeof PrayerRequestRoute,'/login': typeof LoginRoute,'/pillars': typeof PillarsRoute,'/sermons': typeof SermonsRoute,'/services': typeof ServicesRoute,'/books/$bookId': typeof BooksBookIdRoute
 }
 export interface FileRoutesById {
 '__root__': typeof rootRouteImport,
-'/': typeof IndexRoute,'/about': typeof AboutRoute,'/books': typeof BooksRouteWithChildren,'/branches': typeof BranchesRoute,'/contact': typeof ContactRoute,'/dashboard': typeof DashboardRouteWithChildren,'/dashboard/': typeof DashboardIndexRoute,'/events': typeof EventsRoute,'/join-cell': typeof JoinCellRoute,'/login': typeof LoginRoute,'/pillars': typeof PillarsRoute,'/sermons': typeof SermonsRoute,'/services': typeof ServicesRoute,'/books/$bookId': typeof BooksBookIdRoute
+'/': typeof IndexRoute,'/about': typeof AboutRoute,'/books': typeof BooksRouteWithChildren,'/branches': typeof BranchesRoute,'/contact': typeof ContactRoute,'/dashboard': typeof DashboardRouteWithChildren,'/dashboard/': typeof DashboardIndexRoute,'/events': typeof EventsRoute,'/join-cell': typeof JoinCellRoute,'/prayer-request': typeof PrayerRequestRoute,'/login': typeof LoginRoute,'/pillars': typeof PillarsRoute,'/sermons': typeof SermonsRoute,'/services': typeof ServicesRoute,'/books/$bookId': typeof BooksBookIdRoute
 }
 export interface FileRouteTypes {
 fileRoutesByFullPath: FileRoutesByFullPath
-fullPaths: '/'|'/about'|'/books'|'/branches'|'/contact'|'/dashboard'|'/events'|'/join-cell'|'/login'|'/pillars'|'/sermons'|'/services'|'/books/$bookId'
+fullPaths: '/'|'/about'|'/books'|'/branches'|'/contact'|'/dashboard'|'/events'|'/join-cell'|'/prayer-request'|'/login'|'/pillars'|'/sermons'|'/services'|'/books/$bookId'
 fileRoutesByTo: FileRoutesByTo
-to: '/'|'/about'|'/books'|'/branches'|'/contact'|'/dashboard'|'/events'|'/join-cell'|'/login'|'/pillars'|'/sermons'|'/services'|'/books/$bookId'
-id: '__root__'|'/'|'/about'|'/books'|'/branches'|'/contact'|'/dashboard'|'/dashboard/'|'/events'|'/join-cell'|'/login'|'/pillars'|'/sermons'|'/services'|'/books/$bookId'
+to: '/'|'/about'|'/books'|'/branches'|'/contact'|'/dashboard'|'/events'|'/join-cell'|'/prayer-request'|'/login'|'/pillars'|'/sermons'|'/services'|'/books/$bookId'
+id: '__root__'|'/'|'/about'|'/books'|'/branches'|'/contact'|'/dashboard'|'/dashboard/'|'/events'|'/join-cell'|'/prayer-request'|'/login'|'/pillars'|'/sermons'|'/services'|'/books/$bookId'
 fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
-IndexRoute: typeof IndexRoute,AboutRoute: typeof AboutRoute,BooksRoute: typeof BooksRouteWithChildren,BranchesRoute: typeof BranchesRoute,ContactRoute: typeof ContactRoute,DashboardRoute: typeof DashboardRouteWithChildren,EventsRoute: typeof EventsRoute,JoinCellRoute: typeof JoinCellRoute,LoginRoute: typeof LoginRoute,PillarsRoute: typeof PillarsRoute,SermonsRoute: typeof SermonsRoute,ServicesRoute: typeof ServicesRoute
+IndexRoute: typeof IndexRoute,AboutRoute: typeof AboutRoute,BooksRoute: typeof BooksRouteWithChildren,BranchesRoute: typeof BranchesRoute,ContactRoute: typeof ContactRoute,DashboardRoute: typeof DashboardRouteWithChildren,EventsRoute: typeof EventsRoute,JoinCellRoute: typeof JoinCellRoute,PrayerRequestRoute: typeof PrayerRequestRoute,LoginRoute: typeof LoginRoute,PillarsRoute: typeof PillarsRoute,SermonsRoute: typeof SermonsRoute,ServicesRoute: typeof ServicesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -124,6 +128,13 @@ declare module '@tanstack/react-router' {
           path: '/join-cell'
           fullPath: '/join-cell'
           preLoaderRoute: typeof JoinCellRouteImport
+          parentRoute: typeof rootRouteImport
+        }
+'/prayer-request': {
+          id: '/prayer-request'
+          path: '/prayer-request'
+          fullPath: '/prayer-request'
+          preLoaderRoute: typeof PrayerRequestRouteImport
           parentRoute: typeof rootRouteImport
         }
 '/events': {
@@ -215,7 +226,7 @@ const DashboardRouteChildren: DashboardRouteChildren = {
 const DashboardRouteWithChildren = DashboardRoute._addFileChildren(DashboardRouteChildren)
 
 const rootRouteChildren: RootRouteChildren = {
-  IndexRoute: IndexRoute,AboutRoute: AboutRoute,BooksRoute: BooksRouteWithChildren,BranchesRoute: BranchesRoute,ContactRoute: ContactRoute,DashboardRoute: DashboardRouteWithChildren,EventsRoute: EventsRoute,JoinCellRoute: JoinCellRoute,LoginRoute: LoginRoute,PillarsRoute: PillarsRoute,SermonsRoute: SermonsRoute,ServicesRoute: ServicesRoute
+  IndexRoute: IndexRoute,AboutRoute: AboutRoute,BooksRoute: BooksRouteWithChildren,BranchesRoute: BranchesRoute,ContactRoute: ContactRoute,DashboardRoute: DashboardRouteWithChildren,EventsRoute: EventsRoute,JoinCellRoute: JoinCellRoute,PrayerRequestRoute: PrayerRequestRoute,LoginRoute: LoginRoute,PillarsRoute: PillarsRoute,SermonsRoute: SermonsRoute,ServicesRoute: ServicesRoute
 }
 export const routeTree = rootRouteImport._addFileChildren(rootRouteChildren)._addFileTypes<FileRouteTypes>()
 

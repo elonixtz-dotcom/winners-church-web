@@ -239,6 +239,19 @@ export interface CellMembershipRequest {
   created_at: string;
 }
 
+export interface PrayerWallRequest {
+  id: string;
+  full_name: string;
+  phone_number?: string | null;
+  email?: string | null;
+  category: "salvation" | "healing" | "deliverance" | "finances" | "family" | "career" | "spiritual_growth" | "general";
+  request: string;
+  is_confidential: boolean;
+  status: "new" | "in_prayer" | "answered" | "closed";
+  handled_by?: string | null;
+  created_at: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -652,6 +665,30 @@ class LocalStorageDatabase {
   deleteCellMembershipRequest(id: string): void {
     const list = this.getCellMembershipRequests().filter(r => r.id !== id);
     this.set("cell_membership_requests", list);
+  }
+
+  // --- Prayer Wall Requests (public site submissions) ---
+  getPrayerWallRequests(): PrayerWallRequest[] {
+    return this.get<PrayerWallRequest>("prayer_wall_requests").sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }
+  addPrayerWallRequest(request: Omit<PrayerWallRequest, "id" | "status" | "created_at">): PrayerWallRequest {
+    const list = this.getPrayerWallRequests();
+    const newRequest: PrayerWallRequest = {
+      ...request, id: crypto.randomUUID(), status: "new", created_at: new Date().toISOString()
+    };
+    list.push(newRequest);
+    this.set("prayer_wall_requests", list);
+    return newRequest;
+  }
+  updatePrayerWallRequest(id: string, updates: Partial<PrayerWallRequest>): PrayerWallRequest {
+    const list = this.getPrayerWallRequests();
+    const idx = list.findIndex(r => r.id === id);
+    if (idx === -1) throw new Error("Prayer request not found");
+    list[idx] = { ...list[idx], ...updates };
+    this.set("prayer_wall_requests", list);
+    return list[idx];
   }
 
   // --- Books ---
@@ -1239,6 +1276,32 @@ export const db = {
     } else {
       mockDb.deleteCellMembershipRequest(id);
     }
+  },
+
+  // --- Prayer Wall Requests (public site submissions) ---
+  getPrayerWallRequests: async (): Promise<PrayerWallRequest[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("prayer_wall_requests").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as PrayerWallRequest[];
+    }
+    return mockDb.getPrayerWallRequests();
+  },
+  addPrayerWallRequest: async (request: Omit<PrayerWallRequest, "id" | "status" | "created_at">): Promise<PrayerWallRequest> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("prayer_wall_requests").insert([request]).select().single();
+      if (error) throw error;
+      return data as PrayerWallRequest;
+    }
+    return mockDb.addPrayerWallRequest(request);
+  },
+  updatePrayerWallRequest: async (id: string, updates: Partial<PrayerWallRequest>): Promise<PrayerWallRequest> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("prayer_wall_requests").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data as PrayerWallRequest;
+    }
+    return mockDb.updatePrayerWallRequest(id, updates);
   },
 
   // --- Books ---

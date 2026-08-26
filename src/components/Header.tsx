@@ -108,6 +108,13 @@ export default function Header() {
               Join Cell
             </Link>
             <Link
+              to="/prayer-request"
+              className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
+              activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
+            >
+              Prayer Request
+            </Link>
+            <Link
               to="/contact"
               className="text-sm font-medium text-foreground/80 hover:text-primary transition-colors py-1.5"
               activeProps={{ className: "text-primary font-semibold border-b-2 border-primary" }}
@@ -265,6 +272,13 @@ export default function Header() {
                   onClick={() => setMenuOpen(false)}
                 >
                   Join Cell
+                </Link>
+                <Link
+                  to="/prayer-request"
+                  className="text-sm font-medium py-2 px-3 rounded-lg hover:bg-muted text-foreground transition-colors"
+                  onClick={() => setMenuOpen(false)}
+                >
+                  Prayer Request
                 </Link>
             <Link
               to="/contact"

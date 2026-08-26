@@ -26,7 +26,7 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
-  const [role, setRole] = useState<"pastor_admin" | "media_team" | "cell_leader">("cell_leader");
+  const [role, setRole] = useState<"church_admin" | "media_team" | "cell_leader">("cell_leader");
   const [accessCode, setAccessCode] = useState("");
   
   // UI states
@@ -350,7 +350,7 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
                 onChange={(e) => setRole(e.target.value as any)}
                 className="w-full rounded-lg border border-border bg-card px-3 py-2.5 text-xs md:text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary shadow-sm cursor-pointer"
               >
-                <option value="pastor_admin">Pastor / Admin Account</option>
+                <option value="church_admin">Pastor / Admin Account</option>
                 <option value="media_team">Media Coordinator Account</option>
                 <option value="cell_leader">WSF Home Cell Leader Account</option>
               </select>
@@ -369,7 +369,7 @@ export function AuthForm({ defaultTab = "signup", onSuccess, isModalContext = fa
                 <span>
                   {role === "cell_leader" && "WSF Leader Access Code"}
                   {role === "media_team" && "Media Team Security Key"}
-                  {role === "pastor_admin" && "Admin Security Key"}
+                  {role === "church_admin" && "Admin Security Key"}
                 </span>
                 <span className="text-[9px] text-primary font-bold lowercase">Required</span>
               </label>
