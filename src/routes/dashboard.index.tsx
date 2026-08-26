@@ -2746,17 +2746,88 @@ function RequestsTab({ requests, cell, refresh }: { requests: CellMembershipRequ
 
 // Events Tab
 function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState<{ title: string; description: string; event_date: string; image_url: string }>({
+    title: "", description: "", event_date: "", image_url: "",
+  });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await db.addEvent({
+        title: form.title,
+        description: form.description,
+        event_date: new Date(form.event_date).toISOString(),
+        image_url: form.image_url || null,
+      });
+      toast.success("Event posted!");
+      setForm({ title: "", description: "", event_date: "", image_url: "" });
+      setShowForm(false);
+      refresh();
+    } catch {
+      toast.error("Failed to post event");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await db.deleteEvent(id);
+      toast.success("Event deleted");
+      refresh();
+    } catch {
+      toast.error("Failed to delete event");
+    }
+  };
+
   return (
-    <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-      <h3 className="font-heading text-base font-bold text-foreground mb-4">Events ({events.length})</h3>
-      <div className="space-y-3">
-        {events.map((e) => (
-          <div key={e.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
-            <h4 className="font-bold text-foreground">{e.title}</h4>
-            <p className="text-xs text-muted-foreground">{new Date(e.event_date).toLocaleString()}</p>
-            <p className="text-sm mt-1">{e.description}</p>
-          </div>
-        ))}
+    <div className="space-y-4">
+      <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
+        <div className="flex items-center justify-between mb-4">
+          <h3 className="font-heading text-base font-bold text-foreground">Events ({events.length})</h3>
+          <button
+            onClick={() => setShowForm((s) => !s)}
+            className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          >
+            {showForm ? "Cancel" : "+ Add Event"}
+          </button>
+        </div>
+
+        {showForm && (
+          <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mb-5 pb-5 border-b border-border/30">
+            <div className="md:col-span-2">
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Title</label>
+              <input type="text" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            </div>
+            <div className="md:col-span-2">
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Description</label>
+              <textarea required rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground resize-none" />
+            </div>
+            <div>
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Date &amp; Time</label>
+              <input type="datetime-local" required value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            </div>
+            <div>
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Image URL (optional)</label>
+              <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            </div>
+            <div className="md:col-span-2">
+              <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Event</button>
+            </div>
+          </form>
+        )}
+
+        <div className="space-y-3">
+          {events.map((e) => (
+            <div key={e.id} className="p-4 bg-muted/10 rounded-xl border border-border/20 flex items-start justify-between gap-3">
+              <div>
+                <h4 className="font-bold text-foreground">{e.title}</h4>
+                <p className="text-xs text-muted-foreground">{new Date(e.event_date).toLocaleString()}</p>
+                <p className="text-sm mt-1">{e.description}</p>
+              </div>
+              <button onClick={() => handleDelete(e.id)} className="text-[11px] font-semibold text-destructive hover:underline shrink-0">Delete</button>
+            </div>
+          ))}
+        </div>
       </div>
     </div>
   );
@@ -2764,14 +2835,66 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
 
 // Announcements Tab
 function AnnouncementsTab({ announcements, refresh }: { announcements: Announcement[], refresh: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", content: "" });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await db.addAnnouncement(form);
+      toast.success("Announcement posted!");
+      setForm({ title: "", content: "" });
+      setShowForm(false);
+      refresh();
+    } catch {
+      toast.error("Failed to post announcement");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await db.deleteAnnouncement(id);
+      toast.success("Announcement deleted");
+      refresh();
+    } catch {
+      toast.error("Failed to delete announcement");
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-      <h3 className="font-heading text-base font-bold text-foreground mb-4">Announcements ({announcements.length})</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading text-base font-bold text-foreground">Announcements ({announcements.length})</h3>
+        <button
+          onClick={() => setShowForm((s) => !s)}
+          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          {showForm ? "Cancel" : "+ Add Announcement"}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="space-y-4 text-xs mb-5 pb-5 border-b border-border/30">
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Title</label>
+            <input type="text" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Content</label>
+            <textarea required rows={3} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground resize-none" />
+          </div>
+          <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Announcement</button>
+        </form>
+      )}
+
       <div className="space-y-3">
         {announcements.map((a) => (
-          <div key={a.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
-            <h4 className="font-bold text-foreground">{a.title}</h4>
-            <p className="text-sm mt-1">{a.content}</p>
+          <div key={a.id} className="p-4 bg-muted/10 rounded-xl border border-border/20 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-foreground">{a.title}</h4>
+              <p className="text-sm mt-1">{a.content}</p>
+            </div>
+            <button onClick={() => handleDelete(a.id)} className="text-[11px] font-semibold text-destructive hover:underline shrink-0">Delete</button>
           </div>
         ))}
       </div>
@@ -2780,16 +2903,85 @@ function AnnouncementsTab({ announcements, refresh }: { announcements: Announcem
 }
 
 // Sermons Tab
-function SermonsTab({ sermons, refresh }: { sermons: any[], refresh: () => void }) {
+function SermonsTab({ sermons, refresh }: { sermons: Sermon[], refresh: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({ title: "", preacher: "", scripture: "", date: "", video_url: "" });
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await db.addSermon({
+        title: form.title, preacher: form.preacher, scripture: form.scripture,
+        date: form.date, video_url: form.video_url || null,
+      });
+      toast.success("Sermon posted!");
+      setForm({ title: "", preacher: "", scripture: "", date: "", video_url: "" });
+      setShowForm(false);
+      refresh();
+    } catch {
+      toast.error("Failed to post sermon");
+    }
+  };
+
+  const handleDelete = async (id: string) => {
+    try {
+      await db.deleteSermon(id);
+      toast.success("Sermon deleted");
+      refresh();
+    } catch {
+      toast.error("Failed to delete sermon");
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-      <h3 className="font-heading text-base font-bold text-foreground mb-4">Sermons ({sermons.length})</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading text-base font-bold text-foreground">Sermons ({sermons.length})</h3>
+        <button
+          onClick={() => setShowForm((s) => !s)}
+          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          {showForm ? "Cancel" : "+ Add Sermon"}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mb-5 pb-5 border-b border-border/30">
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Title</label>
+            <input type="text" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Preacher</label>
+            <input type="text" required value={form.preacher} onChange={(e) => setForm({ ...form, preacher: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Scripture</label>
+            <input type="text" required value={form.scripture} onChange={(e) => setForm({ ...form, scripture: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" placeholder="e.g. John 3:16" />
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Date</label>
+            <input type="date" required value={form.date} onChange={(e) => setForm({ ...form, date: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Video URL (optional)</label>
+            <input type="text" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div className="md:col-span-2">
+            <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Sermon</button>
+          </div>
+        </form>
+      )}
+
       <div className="space-y-3">
         {sermons.map((s) => (
-          <div key={s.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
-            <h4 className="font-bold text-foreground">{s.title}</h4>
-            <p className="text-xs text-muted-foreground">{s.preacher} • {s.date}</p>
-            {s.scripture && <p className="text-sm text-primary mt-1">{s.scripture}</p>}
+          <div key={s.id} className="p-4 bg-muted/10 rounded-xl border border-border/20 flex items-start justify-between gap-3">
+            <div>
+              <h4 className="font-bold text-foreground">{s.title}</h4>
+              <p className="text-xs text-muted-foreground">{s.preacher} • {s.date}</p>
+              {s.scripture && <p className="text-sm text-primary mt-1">{s.scripture}</p>}
+            </div>
+            <button onClick={() => handleDelete(s.id)} className="text-[11px] font-semibold text-destructive hover:underline shrink-0">Delete</button>
           </div>
         ))}
       </div>
@@ -2799,6 +2991,12 @@ function SermonsTab({ sermons, refresh }: { sermons: any[], refresh: () => void 
 
 // Books Tab
 function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
+  const [showForm, setShowForm] = useState(false);
+  const [form, setForm] = useState({
+    title: "", author: "", description: "", purchase_link: "", cover_image_url: "",
+    price: "", currency: "TZS", categories: "",
+  });
+
   const handleApprove = async (id: string) => {
     try {
       await db.updateBook(id, { is_approved: true });
@@ -2809,9 +3007,93 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
     }
   };
 
+  const handleDelete = async (id: string) => {
+    try {
+      await db.deleteBook(id);
+      toast.success("Book deleted");
+      refresh();
+    } catch {
+      toast.error("Failed to delete book");
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    try {
+      await db.addBook({
+        title: form.title,
+        author: form.author,
+        description: form.description,
+        purchase_link: form.purchase_link || null,
+        cover_image_url: form.cover_image_url || null,
+        price: form.price ? parseFloat(form.price) : null,
+        currency: form.price ? form.currency : null,
+        categories: form.categories ? form.categories.split(",").map((c) => c.trim()).filter(Boolean) : null,
+        is_approved: true,
+      });
+      toast.success("Book published!");
+      setForm({ title: "", author: "", description: "", purchase_link: "", cover_image_url: "", price: "", currency: "TZS", categories: "" });
+      setShowForm(false);
+      refresh();
+    } catch {
+      toast.error("Failed to add book");
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
-      <h3 className="font-heading text-base font-bold text-foreground mb-4">Books ({books.length})</h3>
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="font-heading text-base font-bold text-foreground">Books ({books.length})</h3>
+        <button
+          onClick={() => setShowForm((s) => !s)}
+          className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+        >
+          {showForm ? "Cancel" : "+ Add Book"}
+        </button>
+      </div>
+
+      {showForm && (
+        <form onSubmit={handleSubmit} className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs mb-5 pb-5 border-b border-border/30">
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Title</label>
+            <input type="text" required value={form.title} onChange={(e) => setForm({ ...form, title: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Author</label>
+            <input type="text" required value={form.author} onChange={(e) => setForm({ ...form, author: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Description</label>
+            <textarea required rows={3} value={form.description} onChange={(e) => setForm({ ...form, description: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground resize-none" />
+          </div>
+          <div className="md:col-span-2">
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Purchase Link (optional)</label>
+            <input type="text" value={form.purchase_link} onChange={(e) => setForm({ ...form, purchase_link: e.target.value })} placeholder="https://..." className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Cover Image URL (optional)</label>
+            <input type="text" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div className="grid grid-cols-2 gap-2">
+            <div>
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Price (optional)</label>
+              <input type="number" min="0" step="0.01" value={form.price} onChange={(e) => setForm({ ...form, price: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            </div>
+            <div>
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Currency</label>
+              <input type="text" value={form.currency} onChange={(e) => setForm({ ...form, currency: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            </div>
+          </div>
+          <div className="md:col-span-2">
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Categories (comma-separated, optional)</label>
+            <input type="text" value={form.categories} onChange={(e) => setForm({ ...form, categories: e.target.value })} placeholder="Faith, Prayer, Leadership" className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+          </div>
+          <div className="md:col-span-2">
+            <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Publish Book</button>
+          </div>
+        </form>
+      )}
+
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {books.map((b) => (
           <div key={b.id} className="p-4 bg-muted/10 rounded-xl border border-border/20 flex gap-4">
@@ -2829,14 +3111,22 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
               </div>
               <p className="text-xs text-muted-foreground">By {b.author}</p>
               {b.description && <p className="text-sm mt-1 line-clamp-2">{b.description}</p>}
-              {!b.is_approved && (
-                <button
-                  onClick={() => handleApprove(b.id)}
-                  className="mt-2 rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
-                >
-                  Approve & Publish
-                </button>
+              {b.purchase_link && (
+                <a href={b.purchase_link} target="_blank" rel="noopener noreferrer" className="text-[11px] text-primary hover:underline mt-1 inline-block">
+                  Purchase link ↗
+                </a>
               )}
+              <div className="flex items-center gap-3 mt-2">
+                {!b.is_approved && (
+                  <button
+                    onClick={() => handleApprove(b.id)}
+                    className="rounded-lg bg-primary px-3 py-1.5 text-[11px] font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Approve & Publish
+                  </button>
+                )}
+                <button onClick={() => handleDelete(b.id)} className="text-[11px] font-semibold text-destructive hover:underline">Delete</button>
+              </div>
             </div>
           </div>
         ))}
