@@ -408,9 +408,9 @@ function PastorDashboard({ activeTab, user, cells, zones, districts, users, data
         />
       )}
 
-      {activeTab === "cells" && <CellsTab cells={cells} districts={districts} users={users} refresh={refresh} />}
-      {activeTab === "zones" && <ZonesTab zones={zones} users={users} refresh={refresh} />}
-      {activeTab === "districts" && <DistrictsTab districts={districts} zones={zones} users={users} refresh={refresh} />}
+      {activeTab === "cells" && <CellsTab cells={cells} districts={districts} users={users} refresh={refresh} zones={zones} members={allMembers} visitors={allVisitors} attendance={allAttendance} onNavigate={onNavigate} />}
+      {activeTab === "zones" && <ZonesTab zones={zones} users={users} refresh={refresh} districts={districts} cells={cells} members={allMembers} onNavigate={onNavigate} />}
+      {activeTab === "districts" && <DistrictsTab districts={districts} zones={zones} users={users} refresh={refresh} cells={cells} members={allMembers} onNavigate={onNavigate} />}
       {activeTab === "users" && <UsersTab users={users} cells={cells} refresh={refresh} />}
       {activeTab === "members" && <MembersTab members={members} cells={scopedCells} attendance={attendance} followUps={followUps} onNavigate={onNavigate} />}
       {activeTab === "meetings" && <MeetingsTab meetings={meetings} cells={scopedCells} />}
@@ -522,9 +522,15 @@ function MediaDashboard({ activeTab, data, refresh, onNavigate, userName }: Medi
 // =========================================================================
 
 // Cells Tab
-function CellsTab({ cells, districts, users, refresh, cellId }: { cells: HomeCell[], districts: District[], users: UserProfile[], refresh: () => void, cellId?: string }) {
+function CellsTab({
+  cells, districts, users, refresh, cellId, zones = [], members = [], visitors = [], attendance = [], onNavigate,
+}: {
+  cells: HomeCell[], districts: District[], users: UserProfile[], refresh: () => void, cellId?: string,
+  zones?: Zone[], members?: Member[], visitors?: Visitor[], attendance?: AttendanceRecord[], onNavigate?: (tab: string) => void,
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<HomeCell>>({ meeting_day: "Saturday", meeting_time: "17:00" });
+  const [selectedCell, setSelectedCell] = useState<HomeCell | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -640,13 +646,14 @@ function CellsTab({ cells, districts, users, refresh, cellId }: { cells: HomeCel
         <h3 className="font-heading text-base font-bold text-foreground mb-4">Home Cells ({cells.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {cells.map((cell) => (
-            <div key={cell.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+            <div key={cell.id} onClick={() => setSelectedCell(cell)} className="p-4 bg-muted/10 rounded-xl border border-border/20 cursor-pointer hover:border-primary/30 transition-colors">
               <h4 className="font-bold text-foreground">{cell.name}</h4>
               <p className="text-xs text-muted-foreground">{cell.location}</p>
               <p className="text-xs text-muted-foreground mt-1">{cell.meeting_day} at {cell.meeting_time}</p>
               <div className="flex gap-2 mt-3">
                 <button
-                  onClick={() => {
+                  onClick={(e) => {
+                    e.stopPropagation();
                     setEditing(cell.id);
                     setForm(cell);
                   }}
@@ -659,14 +666,77 @@ function CellsTab({ cells, districts, users, refresh, cellId }: { cells: HomeCel
           ))}
         </div>
       </div>
+
+      {selectedCell && (() => {
+        const district = districts.find((d) => d.id === selectedCell.district_id);
+        const zone = district ? zones.find((z) => z.id === district.zone_id) : undefined;
+        const leader = users.find((u) => u.id === selectedCell.leader_id);
+        const assistant = users.find((u) => u.id === selectedCell.assistant_leader_id);
+        const cellMembers = members.filter((m) => m.home_cell_id === selectedCell.id);
+        const cellVisitors = visitors.filter((v) => v.home_cell_id === selectedCell.id);
+        const cellAttendance = attendance.filter((a) => a.home_cell_id === selectedCell.id);
+        const rate = attendanceRateFromRecords(cellAttendance);
+
+        return (
+          <DetailDrawer
+            open
+            onClose={() => setSelectedCell(null)}
+            title={selectedCell.name}
+            subtitle={district?.name}
+            actions={onNavigate ? (
+              <>
+                <button onClick={() => { onNavigate("members"); setSelectedCell(null); }} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors">View Members</button>
+                <button onClick={() => { onNavigate("attendance"); setSelectedCell(null); }} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors">View Attendance</button>
+              </>
+            ) : undefined}
+          >
+            <DetailSection label="Leadership">
+              <DetailRow label="Cell Leader" value={leader?.full_name || "Unassigned"} />
+              <DetailRow label="Assistant Leader" value={assistant?.full_name || "Unassigned"} />
+            </DetailSection>
+
+            <DetailSection label="Organization">
+              <DetailRow label="District" value={district?.name || "—"} />
+              <DetailRow label="Zone" value={zone?.name || "—"} />
+              <DetailRow label="Location" value={selectedCell.location} />
+              <DetailRow label="Address" value={selectedCell.address} />
+              <DetailRow label="Meeting Schedule" value={`${selectedCell.meeting_day} at ${selectedCell.meeting_time}`} />
+              <DetailRow label="Cell Code" value={selectedCell.cell_code} />
+            </DetailSection>
+
+            <DetailSection label="Health">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{cellMembers.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Members</div>
+                </div>
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{cellVisitors.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Visitors</div>
+                </div>
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{cellAttendance.length > 0 ? `${rate}%` : "—"}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Attendance</div>
+                </div>
+              </div>
+            </DetailSection>
+          </DetailDrawer>
+        );
+      })()}
     </div>
   );
 }
 
 // Zones Tab
-function ZonesTab({ zones, users, refresh }: { zones: Zone[], users: UserProfile[], refresh: () => void }) {
+function ZonesTab({
+  zones, users, refresh, districts = [], cells = [], members = [], onNavigate,
+}: {
+  zones: Zone[], users: UserProfile[], refresh: () => void,
+  districts?: District[], cells?: HomeCell[], members?: Member[], onNavigate?: (tab: string) => void,
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Zone>>({});
+  const [selectedZone, setSelectedZone] = useState<Zone | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -726,10 +796,11 @@ function ZonesTab({ zones, users, refresh }: { zones: Zone[], users: UserProfile
         <h3 className="font-heading text-base font-bold text-foreground mb-4">Zones ({zones.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {zones.map((zone) => (
-            <div key={zone.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+            <div key={zone.id} onClick={() => setSelectedZone(zone)} className="p-4 bg-muted/10 rounded-xl border border-border/20 cursor-pointer hover:border-primary/30 transition-colors">
               <h4 className="font-bold text-foreground">{zone.name}</h4>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setEditing(zone.id);
                   setForm(zone);
                 }}
@@ -741,14 +812,72 @@ function ZonesTab({ zones, users, refresh }: { zones: Zone[], users: UserProfile
           ))}
         </div>
       </div>
+
+      {selectedZone && (() => {
+        const zoneDistricts = districts.filter((d) => d.zone_id === selectedZone.id);
+        const zoneDistrictIds = new Set(zoneDistricts.map((d) => d.id));
+        const zoneCells = cells.filter((c) => c.district_id && zoneDistrictIds.has(c.district_id));
+        const zoneCellIds = new Set(zoneCells.map((c) => c.id));
+        const zoneMembers = members.filter((m) => zoneCellIds.has(m.home_cell_id));
+        const pastor = users.find((u) => u.id === selectedZone.zone_pastor_id);
+
+        return (
+          <DetailDrawer
+            open
+            onClose={() => setSelectedZone(null)}
+            title={selectedZone.name}
+            subtitle="Zone"
+            actions={onNavigate ? (
+              <button onClick={() => { onNavigate("districts"); setSelectedZone(null); }} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors">View Districts</button>
+            ) : undefined}
+          >
+            <DetailSection label="Leadership">
+              <DetailRow label="Zone Pastor" value={pastor?.full_name || "Unassigned"} />
+            </DetailSection>
+            <DetailSection label="Overview">
+              <div className="grid grid-cols-3 gap-3">
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{zoneDistricts.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Districts</div>
+                </div>
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{zoneCells.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Cells</div>
+                </div>
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{zoneMembers.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Members</div>
+                </div>
+              </div>
+            </DetailSection>
+            <DetailSection label="Districts">
+              {zoneDistricts.length > 0 ? (
+                <div className="space-y-1.5">
+                  {zoneDistricts.map((d) => (
+                    <div key={d.id} className="text-xs bg-muted/10 rounded-lg px-3 py-2 font-medium text-foreground">{d.name}</div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No districts in this zone yet.</p>
+              )}
+            </DetailSection>
+          </DetailDrawer>
+        );
+      })()}
     </div>
   );
 }
 
 // Districts Tab
-function DistrictsTab({ districts, zones, users, refresh }: { districts: District[], zones: Zone[], users: UserProfile[], refresh: () => void }) {
+function DistrictsTab({
+  districts, zones, users, refresh, cells = [], members = [], onNavigate,
+}: {
+  districts: District[], zones: Zone[], users: UserProfile[], refresh: () => void,
+  cells?: HomeCell[], members?: Member[], onNavigate?: (tab: string) => void,
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<District>>({});
+  const [selectedDistrict, setSelectedDistrict] = useState<District | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -821,13 +950,14 @@ function DistrictsTab({ districts, zones, users, refresh }: { districts: Distric
         <h3 className="font-heading text-base font-bold text-foreground mb-4">Districts ({districts.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {districts.map((district) => (
-            <div key={district.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+            <div key={district.id} onClick={() => setSelectedDistrict(district)} className="p-4 bg-muted/10 rounded-xl border border-border/20 cursor-pointer hover:border-primary/30 transition-colors">
               <h4 className="font-bold text-foreground">{district.name}</h4>
               <p className="text-xs text-muted-foreground">
                 Zone: {zones.find((z) => z.id === district.zone_id)?.name || "Unassigned"}
               </p>
               <button
-                onClick={() => {
+                onClick={(e) => {
+                  e.stopPropagation();
                   setEditing(district.id);
                   setForm(district);
                 }}
@@ -839,6 +969,54 @@ function DistrictsTab({ districts, zones, users, refresh }: { districts: Distric
           ))}
         </div>
       </div>
+
+      {selectedDistrict && (() => {
+        const zone = zones.find((z) => z.id === selectedDistrict.zone_id);
+        const districtCells = cells.filter((c) => c.district_id === selectedDistrict.id);
+        const districtCellIds = new Set(districtCells.map((c) => c.id));
+        const districtMembers = members.filter((m) => districtCellIds.has(m.home_cell_id));
+        const pastor = users.find((u) => u.id === selectedDistrict.district_pastor_id);
+
+        return (
+          <DetailDrawer
+            open
+            onClose={() => setSelectedDistrict(null)}
+            title={selectedDistrict.name}
+            subtitle={zone?.name}
+            actions={onNavigate ? (
+              <button onClick={() => { onNavigate("cells"); setSelectedDistrict(null); }} className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors">View Cells</button>
+            ) : undefined}
+          >
+            <DetailSection label="Leadership">
+              <DetailRow label="District Pastor" value={pastor?.full_name || "Unassigned"} />
+              <DetailRow label="Zone" value={zone?.name || "—"} />
+            </DetailSection>
+            <DetailSection label="Overview">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{districtCells.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Cells</div>
+                </div>
+                <div className="rounded-xl bg-muted/10 p-3 text-center">
+                  <div className="text-lg font-bold text-foreground">{districtMembers.length}</div>
+                  <div className="text-[10px] text-muted-foreground font-semibold uppercase">Members</div>
+                </div>
+              </div>
+            </DetailSection>
+            <DetailSection label="Home Cells">
+              {districtCells.length > 0 ? (
+                <div className="space-y-1.5">
+                  {districtCells.map((c) => (
+                    <div key={c.id} className="text-xs bg-muted/10 rounded-lg px-3 py-2 font-medium text-foreground">{c.name}</div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No home cells in this district yet.</p>
+              )}
+            </DetailSection>
+          </DetailDrawer>
+        );
+      })()}
     </div>
   );
 }
