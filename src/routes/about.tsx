@@ -2,9 +2,18 @@ import { createFileRoute } from "@tanstack/react-router";
 import oyedepo from "@/assets/oyedepo.png";
 import bishopOyedepo from "@/assets/Bishop-David-Oyedepo.webp";
 import oyedepoPortrait from "@/assets/oyedepo-portrain.jpeg";
-import abioyePortrait from "@/assets/bishop-abioye-portrait.jpg";
 import oyedepoJrPortrait from "@/assets/oyedepo-jr-portrait.jpg";
 import imohiPortrait from "@/assets/imohi-portrait.jpeg";
+
+const TITLE_WORDS = new Set(["pastor", "bishop", "mrs", "mr", "dr", "rev", "prof", "elder", "deacon"]);
+
+function initialsFor(name: string): string {
+  const words = name
+    .replace(/[().]/g, "")
+    .split(" ")
+    .filter((w) => w && !TITLE_WORDS.has(w.toLowerCase()));
+  return words.slice(-2).map((w) => w[0]).join("").toUpperCase();
+}
 
 export const Route = createFileRoute("/about")({
   head: () => ({
@@ -26,9 +35,8 @@ function AboutPage() {
       image: oyedepoPortrait,
     },
     {
-      name: "Bishop David Abioye",
-      role: "Vice President",
-      image: abioyePortrait,
+      name: "Pastor (Mrs.) Faith Oyedepo",
+      role: "Vice President, Education",
     },
     {
       name: "Pastor David Oyedepo Jr.",
@@ -168,7 +176,15 @@ function AboutPage() {
             {leadership.map((leader) => (
               <div key={leader.name} className="bg-card rounded-2xl overflow-hidden border border-border/50 shadow-sm hover:shadow-md transition-shadow group">
                 <div className="aspect-[4/5] overflow-hidden">
-                  <img src={leader.image} alt={leader.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  {leader.image ? (
+                    <img src={leader.image} alt={leader.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
+                  ) : (
+                    <div className="w-full h-full bg-primary/10 flex items-center justify-center">
+                      <span className="text-3xl font-heading font-bold text-primary/50">
+                        {initialsFor(leader.name)}
+                      </span>
+                    </div>
+                  )}
                 </div>
                 <div className="p-6 text-center">
                   <h3 className="font-heading text-lg font-bold text-foreground">{leader.name}</h3>
