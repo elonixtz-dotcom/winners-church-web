@@ -2928,6 +2928,81 @@ function ReportsTab({ reports, cells, cellId, refresh }: { reports: WeeklyReport
         </div>
       )}
 
+      {!cellId && reports.length > 0 && (() => {
+        const totalAttendance = reports.reduce((sum, r) => sum + r.members_present, 0);
+        const totalPossible = reports.reduce((sum, r) => sum + r.total_members, 0);
+        const totalVisitors = reports.reduce((sum, r) => sum + r.visitors, 0);
+        const totalConverts = reports.reduce((sum, r) => sum + r.new_converts, 0);
+        const totalOffering = reports.reduce((sum, r) => sum + r.total_offering, 0);
+        const avgAttendance = totalPossible > 0 ? Math.round((totalAttendance / totalPossible) * 100) : 0;
+
+        const byCell = cells.map((c) => {
+          const cellReports = reports.filter((r) => r.home_cell_id === c.id);
+          const present = cellReports.reduce((s, r) => s + r.members_present, 0);
+          const possible = cellReports.reduce((s, r) => s + r.total_members, 0);
+          return {
+            cell: c,
+            reportCount: cellReports.length,
+            attendanceRate: possible > 0 ? Math.round((present / possible) * 100) : 0,
+            visitors: cellReports.reduce((s, r) => s + r.visitors, 0),
+            offering: cellReports.reduce((s, r) => s + r.total_offering, 0),
+          };
+        }).filter((row) => row.reportCount > 0);
+
+        return (
+          <div className="space-y-4">
+            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+              <div className="bg-card rounded-2xl border border-border/40 p-4 shadow-sm">
+                <div className="text-xs font-semibold text-muted-foreground">Avg. Attendance</div>
+                <div className="text-xl font-bold text-foreground mt-1">{avgAttendance}%</div>
+              </div>
+              <div className="bg-card rounded-2xl border border-border/40 p-4 shadow-sm">
+                <div className="text-xs font-semibold text-muted-foreground">Total Visitors</div>
+                <div className="text-xl font-bold text-foreground mt-1">{totalVisitors}</div>
+              </div>
+              <div className="bg-card rounded-2xl border border-border/40 p-4 shadow-sm">
+                <div className="text-xs font-semibold text-muted-foreground">Total Converts</div>
+                <div className="text-xl font-bold text-foreground mt-1">{totalConverts}</div>
+              </div>
+              <div className="bg-card rounded-2xl border border-border/40 p-4 shadow-sm">
+                <div className="text-xs font-semibold text-muted-foreground">Total Offerings</div>
+                <div className="text-xl font-bold text-foreground mt-1">{totalOffering.toFixed(2)}</div>
+              </div>
+            </div>
+
+            {byCell.length > 0 && (
+              <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
+                <h3 className="font-heading text-base font-bold text-foreground mb-4">Cell Reporting Summary</h3>
+                <div className="overflow-x-auto">
+                  <table className="w-full text-xs">
+                    <thead>
+                      <tr className="border-b border-border/40 bg-muted/15">
+                        <th className="py-2 px-3 text-left font-bold text-muted-foreground">Cell</th>
+                        <th className="py-2 px-3 text-right font-bold text-muted-foreground">Reports</th>
+                        <th className="py-2 px-3 text-right font-bold text-muted-foreground">Attendance</th>
+                        <th className="py-2 px-3 text-right font-bold text-muted-foreground">Visitors</th>
+                        <th className="py-2 px-3 text-right font-bold text-muted-foreground">Offerings</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-border/20">
+                      {byCell.map((row) => (
+                        <tr key={row.cell.id}>
+                          <td className="py-2.5 px-3 font-semibold text-foreground">{row.cell.name}</td>
+                          <td className="py-2.5 px-3 text-right">{row.reportCount}</td>
+                          <td className="py-2.5 px-3 text-right">{row.attendanceRate}%</td>
+                          <td className="py-2.5 px-3 text-right">{row.visitors}</td>
+                          <td className="py-2.5 px-3 text-right">{row.offering.toFixed(2)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            )}
+          </div>
+        );
+      })()}
+
       <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
         <h3 className="font-heading text-base font-bold text-foreground mb-4">Weekly Reports ({reports.length})</h3>
         <div className="space-y-3">
