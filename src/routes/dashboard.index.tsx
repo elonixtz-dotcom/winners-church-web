@@ -622,6 +622,45 @@ function CellsTab({
               className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground"
             />
           </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Cell Leader</label>
+            <select
+              value={form.leader_id || ""}
+              onChange={(e) => setForm({ ...form, leader_id: e.target.value || null })}
+              className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground"
+            >
+              <option value="">Unassigned</option>
+              {users.filter((u) => u.role === "cell_leader").map((u) => (
+                <option key={u.id} value={u.id}>{u.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Assistant Leader</label>
+            <select
+              value={form.assistant_leader_id || ""}
+              onChange={(e) => setForm({ ...form, assistant_leader_id: e.target.value || null })}
+              className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground"
+            >
+              <option value="">Unassigned</option>
+              {users.filter((u) => u.role === "assistant_leader").map((u) => (
+                <option key={u.id} value={u.id}>{u.full_name}</option>
+              ))}
+            </select>
+          </div>
+          <div>
+            <label className="block font-bold text-muted-foreground uppercase mb-1">District</label>
+            <select
+              value={form.district_id || ""}
+              onChange={(e) => setForm({ ...form, district_id: e.target.value || null })}
+              className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground"
+            >
+              <option value="">Unassigned</option>
+              {districts.map((d) => (
+                <option key={d.id} value={d.id}>{d.name}</option>
+              ))}
+            </select>
+          </div>
           <div className="md:col-span-2 flex gap-2">
             <button type="submit" className="px-4 py-2 bg-primary text-primary-foreground rounded-lg font-semibold">
               {editing ? "Update Cell" : "Create Cell"}
@@ -1023,6 +1062,40 @@ function DistrictsTab({
 
 // Users Tab
 function UsersTab({ users, cells, refresh }: { users: UserProfile[], cells: HomeCell[], refresh: () => void }) {
+  const ROLE_OPTIONS: UserProfile["role"][] = [
+    "super_admin", "church_admin", "zone_pastor", "district_pastor", "cell_leader", "assistant_leader", "media_team",
+  ];
+
+  const handleApprove = async (id: string) => {
+    try {
+      await db.updateUser(id, { is_approved: true });
+      toast.success("User approved.");
+      refresh();
+    } catch {
+      toast.error("Failed to approve user");
+    }
+  };
+
+  const handleToggleApproval = async (u: UserProfile) => {
+    try {
+      await db.updateUser(u.id, { is_approved: !u.is_approved });
+      toast.success(u.is_approved ? "User access revoked." : "User approved.");
+      refresh();
+    } catch {
+      toast.error("Failed to update user");
+    }
+  };
+
+  const handleRoleChange = async (id: string, role: UserProfile["role"]) => {
+    try {
+      await db.updateUser(id, { role });
+      toast.success("Role updated.");
+      refresh();
+    } catch {
+      toast.error("Failed to update role");
+    }
+  };
+
   return (
     <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
       <h3 className="font-heading text-base font-bold text-foreground mb-4">Users ({users.length})</h3>
@@ -1034,6 +1107,7 @@ function UsersTab({ users, cells, refresh }: { users: UserProfile[], cells: Home
               <th className="py-2 px-3 text-left font-bold text-muted-foreground">Email</th>
               <th className="py-2 px-3 text-left font-bold text-muted-foreground">Role</th>
               <th className="py-2 px-3 text-left font-bold text-muted-foreground">Status</th>
+              <th className="py-2 px-3 text-left font-bold text-muted-foreground">Actions</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-border/20">
@@ -1041,17 +1115,39 @@ function UsersTab({ users, cells, refresh }: { users: UserProfile[], cells: Home
               <tr key={u.id} className="hover:bg-muted/5">
                 <td className="py-3 px-3 font-bold text-foreground">{u.full_name}</td>
                 <td className="py-3 px-3">{u.email}</td>
-                <td className="py-3 px-3 capitalize">{u.role.replace("_", " ")}</td>
                 <td className="py-3 px-3">
-                  <span className={u.is_approved ? "text-green-600" : "text-yellow-600"}>
-                    {u.is_approved ? "Approved" : "Pending"}
-                  </span>
+                  <select
+                    value={u.role}
+                    onChange={(e) => handleRoleChange(u.id, e.target.value as UserProfile["role"])}
+                    className="rounded-lg border border-border px-2 py-1 bg-card text-foreground text-xs capitalize"
+                  >
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r} value={r}>{r.replace("_", " ")}</option>
+                    ))}
+                  </select>
+                </td>
+                <td className="py-3 px-3">
+                  <StatusBadge status={u.is_approved ? "approved" : "pending"} />
+                </td>
+                <td className="py-3 px-3">
+                  {!u.is_approved ? (
+                    <button onClick={() => handleApprove(u.id)} className="text-xs px-2 py-1 bg-primary text-primary-foreground rounded font-semibold">
+                      Approve
+                    </button>
+                  ) : (
+                    <button onClick={() => handleToggleApproval(u)} className="text-xs px-2 py-1 bg-destructive/10 text-destructive rounded font-semibold">
+                      Revoke Access
+                    </button>
+                  )}
                 </td>
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+      <p className="text-[11px] text-muted-foreground mt-3">
+        To connect a Cell Leader or Assistant Leader to a specific home cell, assign them from the Home Cells tab.
+      </p>
     </div>
   );
 }
