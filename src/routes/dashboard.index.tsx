@@ -30,6 +30,7 @@ import { DashboardSkeleton } from "@/components/dashboard/Skeletons";
 import ErrorState from "@/components/dashboard/ErrorState";
 import EmptyState from "@/components/dashboard/EmptyState";
 import StatusBadge from "@/components/dashboard/StatusBadge";
+import DetailDrawer, { DetailSection, DetailRow } from "@/components/dashboard/DetailDrawer";
 import {
   OrgOverview, CellLeaderOverview, MediaTeamOverview,
   buildOrgAdminQuickActions, buildSupervisorQuickActions, attendanceRateFromRecords,
@@ -411,11 +412,11 @@ function PastorDashboard({ activeTab, user, cells, zones, districts, users, data
       {activeTab === "zones" && <ZonesTab zones={zones} users={users} refresh={refresh} />}
       {activeTab === "districts" && <DistrictsTab districts={districts} zones={zones} users={users} refresh={refresh} />}
       {activeTab === "users" && <UsersTab users={users} cells={cells} refresh={refresh} />}
-      {activeTab === "members" && <MembersTab members={members} cells={scopedCells} />}
+      {activeTab === "members" && <MembersTab members={members} cells={scopedCells} attendance={attendance} followUps={followUps} onNavigate={onNavigate} />}
       {activeTab === "meetings" && <MeetingsTab meetings={meetings} cells={scopedCells} />}
       {activeTab === "attendance" && <AdminAttendanceTab cells={scopedCells} members={members} meetings={meetings} />}
-      {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={scopedCells} />}
-      {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={scopedCells} />}
+      {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={scopedCells} followUps={followUps} onNavigate={onNavigate} />}
+      {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={scopedCells} followUps={followUps} onNavigate={onNavigate} />}
       {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} cells={scopedCells} />}
       {activeTab === "followups" && <FollowUpsTab followUps={followUps} cells={scopedCells} />}
       {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={scopedCells} />}
@@ -469,9 +470,9 @@ function CellLeaderDashboard({ activeTab, user, data, refresh, onNavigate }: Cel
       {activeTab === "cell" && <CellDetailsTab cell={cell} refresh={refresh} canEdit={user.role === "cell_leader"} />}
       {activeTab === "meetings" && <MeetingsTab meetings={meetings} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "attendance" && <AttendanceTab cell={cell} members={members} meetings={meetings} refresh={refresh} />}
-      {activeTab === "members" && <MembersTab members={members} cells={[cell]} cellId={cell.id} refresh={refresh} />}
-      {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={[cell]} cellId={cell.id} refresh={refresh} />}
-      {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={[cell]} cellId={cell.id} refresh={refresh} />}
+      {activeTab === "members" && <MembersTab members={members} cells={[cell]} cellId={cell.id} refresh={refresh} attendance={attendanceRecords} followUps={followUps} onNavigate={onNavigate} />}
+      {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={[cell]} cellId={cell.id} refresh={refresh} followUps={followUps} onNavigate={onNavigate} />}
+      {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={[cell]} cellId={cell.id} refresh={refresh} followUps={followUps} onNavigate={onNavigate} />}
       {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "followups" && <FollowUpsTab followUps={followUps} cells={[cell]} cellId={cell.id} refresh={refresh} />}
       {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={[cell]} cellId={cell.id} refresh={refresh} />}
@@ -878,9 +879,15 @@ function UsersTab({ users, cells, refresh }: { users: UserProfile[], cells: Home
 }
 
 // Members Tab
-function MembersTab({ members, cells, cellId, refresh }: { members: Member[], cells: HomeCell[], cellId?: string, refresh?: () => void }) {
+function MembersTab({
+  members, cells, cellId, refresh, attendance = [], followUps = [], onNavigate,
+}: {
+  members: Member[], cells: HomeCell[], cellId?: string, refresh?: () => void,
+  attendance?: AttendanceRecord[], followUps?: FollowUp[], onNavigate?: (tab: string) => void,
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Member>>({ gender: "Male", marital_status: "Single", membership_status: "active" });
+  const [selectedMember, setSelectedMember] = useState<Member | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1036,7 +1043,7 @@ function MembersTab({ members, cells, cellId, refresh }: { members: Member[], ce
             </thead>
             <tbody className="divide-y divide-border/20">
               {members.map((m) => (
-                <tr key={m.id} className="hover:bg-muted/5">
+                <tr key={m.id} onClick={() => setSelectedMember(m)} className="hover:bg-muted/5 cursor-pointer">
                   <td className="py-3 px-3 font-bold text-foreground">{m.first_name} {m.last_name}</td>
                   <td className="py-3 px-3">{m.gender}</td>
                   <td className="py-3 px-3">{m.phone_number}</td>
@@ -1044,7 +1051,8 @@ function MembersTab({ members, cells, cellId, refresh }: { members: Member[], ce
                   {refresh && (
                     <td className="py-3 px-3">
                       <button
-                        onClick={() => {
+                        onClick={(e) => {
+                          e.stopPropagation();
                           setEditing(m.id);
                           setForm(m);
                         }}
@@ -1060,6 +1068,86 @@ function MembersTab({ members, cells, cellId, refresh }: { members: Member[], ce
           </table>
         </div>
       </div>
+
+      {selectedMember && (() => {
+        const memberAttendance = attendance.filter((a) => a.member_id === selectedMember.id);
+        const presentCount = memberAttendance.filter((a) => a.present).length;
+        const memberFollowUps = followUps
+          .filter((f) => f.person_type === "member" && f.person_id === selectedMember.id)
+          .sort((a, b) => new Date(b.follow_up_date).getTime() - new Date(a.follow_up_date).getTime());
+        const cell = cells.find((c) => c.id === selectedMember.home_cell_id);
+
+        return (
+          <DetailDrawer
+            open
+            onClose={() => setSelectedMember(null)}
+            title={`${selectedMember.first_name} ${selectedMember.last_name}`}
+            subtitle={cell?.name}
+            actions={
+              <>
+                {refresh && (
+                  <button
+                    onClick={() => { setEditing(selectedMember.id); setForm(selectedMember); setSelectedMember(null); }}
+                    className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Edit Member
+                  </button>
+                )}
+                {onNavigate && (
+                  <button
+                    onClick={() => { onNavigate("followups"); setSelectedMember(null); }}
+                    className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                  >
+                    Add Follow-up
+                  </button>
+                )}
+              </>
+            }
+          >
+            <DetailSection label="Profile">
+              <DetailRow label="Gender" value={selectedMember.gender} />
+              <DetailRow label="Phone" value={selectedMember.phone_number} />
+              <DetailRow label="Email" value={selectedMember.email} />
+              <DetailRow label="Date of Birth" value={selectedMember.date_of_birth} />
+              <DetailRow label="Marital Status" value={selectedMember.marital_status} />
+              <DetailRow label="Occupation" value={selectedMember.occupation} />
+              <DetailRow label="Address" value={selectedMember.address} />
+            </DetailSection>
+
+            <DetailSection label="Church Information">
+              <DetailRow label="Home Cell" value={cell?.name || "—"} />
+              <DetailRow label="Date Joined" value={selectedMember.date_joined} />
+              <DetailRow label="Status" value={<StatusBadge status={selectedMember.membership_status === "active" ? "active" : "inactive"} label={selectedMember.membership_status} />} />
+            </DetailSection>
+
+            <DetailSection label="Attendance">
+              {memberAttendance.length > 0 ? (
+                <p className="text-xs text-foreground">
+                  Present at <span className="font-bold">{presentCount}</span> of <span className="font-bold">{memberAttendance.length}</span> recorded meetings
+                  ({Math.round((presentCount / memberAttendance.length) * 100)}%)
+                </p>
+              ) : (
+                <p className="text-xs text-muted-foreground">No attendance recorded yet.</p>
+              )}
+            </DetailSection>
+
+            <DetailSection label="Follow-up History">
+              {memberFollowUps.length > 0 ? (
+                <div className="space-y-2">
+                  {memberFollowUps.slice(0, 5).map((f) => (
+                    <div key={f.id} className="text-xs bg-muted/10 rounded-lg p-2.5">
+                      <div className="font-semibold text-foreground">{f.follow_up_date} • {f.follow_up_method}</div>
+                      <div className="text-muted-foreground mt-0.5">{f.outcome}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No follow-ups recorded yet.</p>
+              )}
+            </DetailSection>
+          </DetailDrawer>
+        );
+      })()}
     </div>
   );
 }
@@ -1363,9 +1451,15 @@ function AdminAttendanceTab({ cells, members, meetings }: { cells: HomeCell[], m
 }
 
 // Visitors Tab
-function VisitorsTab({ visitors, cells, cellId, refresh }: { visitors: Visitor[], cells: HomeCell[], cellId?: string, refresh?: () => void }) {
+function VisitorsTab({
+  visitors, cells, cellId, refresh, followUps = [], onNavigate,
+}: {
+  visitors: Visitor[], cells: HomeCell[], cellId?: string, refresh?: () => void,
+  followUps?: FollowUp[], onNavigate?: (tab: string) => void,
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<Visitor>>({ gender: "Male", follow_up_status: "New", number_of_visits: 1 });
+  const [selectedVisitor, setSelectedVisitor] = useState<Visitor | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1492,7 +1586,7 @@ function VisitorsTab({ visitors, cells, cellId, refresh }: { visitors: Visitor[]
         <h3 className="font-heading text-base font-bold text-foreground mb-4">Visitors ({visitors.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {visitors.map((v) => (
-            <div key={v.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+            <div key={v.id} onClick={() => setSelectedVisitor(v)} className="p-4 bg-muted/10 rounded-xl border border-border/20 cursor-pointer hover:border-primary/30 transition-colors">
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-bold text-foreground">{v.full_name}</h4>
@@ -1508,7 +1602,8 @@ function VisitorsTab({ visitors, cells, cellId, refresh }: { visitors: Visitor[]
                 </div>
                 {refresh && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEditing(v.id);
                       setForm(v);
                     }}
@@ -1522,14 +1617,94 @@ function VisitorsTab({ visitors, cells, cellId, refresh }: { visitors: Visitor[]
           ))}
         </div>
       </div>
+
+      {selectedVisitor && (() => {
+        const visitorFollowUps = followUps
+          .filter((f) => f.person_type === "visitor" && f.person_id === selectedVisitor.id)
+          .sort((a, b) => new Date(b.follow_up_date).getTime() - new Date(a.follow_up_date).getTime());
+        const cell = cells.find((c) => c.id === selectedVisitor.home_cell_id);
+
+        return (
+          <DetailDrawer
+            open
+            onClose={() => setSelectedVisitor(null)}
+            title={selectedVisitor.full_name}
+            subtitle={cell?.name}
+            actions={
+              <>
+                {refresh && selectedVisitor.follow_up_status !== "Joined Church" && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await db.updateVisitor(selectedVisitor.id, { follow_up_status: "Joined Church" });
+                        toast.success(`${selectedVisitor.full_name} marked as joined!`);
+                        refresh?.();
+                        setSelectedVisitor(null);
+                      } catch {
+                        toast.error("Failed to update visitor");
+                      }
+                    }}
+                    className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Convert to Member
+                  </button>
+                )}
+                {onNavigate && (
+                  <button
+                    onClick={() => { onNavigate("followups"); setSelectedVisitor(null); }}
+                    className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                  >
+                    Add Follow-up
+                  </button>
+                )}
+              </>
+            }
+          >
+            <DetailSection label="Profile">
+              <DetailRow label="Gender" value={selectedVisitor.gender} />
+              <DetailRow label="Phone" value={selectedVisitor.phone_number} />
+              <DetailRow label="Address" value={selectedVisitor.address} />
+              <DetailRow label="Invited By" value={selectedVisitor.invited_by} />
+            </DetailSection>
+
+            <DetailSection label="Visit Information">
+              <DetailRow label="Home Cell" value={cell?.name || "—"} />
+              <DetailRow label="First Visit" value={selectedVisitor.first_visit_date} />
+              <DetailRow label="Number of Visits" value={selectedVisitor.number_of_visits} />
+              <DetailRow label="Follow-up Status" value={selectedVisitor.follow_up_status} />
+            </DetailSection>
+
+            <DetailSection label="Follow-up History">
+              {visitorFollowUps.length > 0 ? (
+                <div className="space-y-2">
+                  {visitorFollowUps.slice(0, 5).map((f) => (
+                    <div key={f.id} className="text-xs bg-muted/10 rounded-lg p-2.5">
+                      <div className="font-semibold text-foreground">{f.follow_up_date} • {f.follow_up_method}</div>
+                      <div className="text-muted-foreground mt-0.5">{f.outcome}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No follow-ups recorded yet.</p>
+              )}
+            </DetailSection>
+          </DetailDrawer>
+        );
+      })()}
     </div>
   );
 }
 
 // New Converts Tab
-function NewConvertsTab({ converts, cells, cellId, refresh }: { converts: NewConvert[], cells: HomeCell[], cellId?: string, refresh?: () => void }) {
+function NewConvertsTab({
+  converts, cells, cellId, refresh, followUps = [], onNavigate,
+}: {
+  converts: NewConvert[], cells: HomeCell[], cellId?: string, refresh?: () => void,
+  followUps?: FollowUp[], onNavigate?: (tab: string) => void,
+}) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<NewConvert>>({ baptism_status: "not_baptized", foundation_class_status: "not_started" });
+  const [selectedConvert, setSelectedConvert] = useState<NewConvert | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -1645,7 +1820,7 @@ function NewConvertsTab({ converts, cells, cellId, refresh }: { converts: NewCon
         <h3 className="font-heading text-base font-bold text-foreground mb-4">New Converts ({converts.length})</h3>
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
           {converts.map((c) => (
-            <div key={c.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+            <div key={c.id} onClick={() => setSelectedConvert(c)} className="p-4 bg-muted/10 rounded-xl border border-border/20 cursor-pointer hover:border-primary/30 transition-colors">
               <div className="flex justify-between items-start">
                 <div>
                   <h4 className="font-bold text-foreground">{c.full_name}</h4>
@@ -1668,7 +1843,8 @@ function NewConvertsTab({ converts, cells, cellId, refresh }: { converts: NewCon
                 </div>
                 {refresh && (
                   <button
-                    onClick={() => {
+                    onClick={(e) => {
+                      e.stopPropagation();
                       setEditing(c.id);
                       setForm(c);
                     }}
@@ -1682,6 +1858,81 @@ function NewConvertsTab({ converts, cells, cellId, refresh }: { converts: NewCon
           ))}
         </div>
       </div>
+
+      {selectedConvert && (() => {
+        const convertFollowUps = followUps
+          .filter((f) => f.person_type === "new_convert" && f.person_id === selectedConvert.id)
+          .sort((a, b) => new Date(b.follow_up_date).getTime() - new Date(a.follow_up_date).getTime());
+        const cell = cells.find((c) => c.id === selectedConvert.home_cell_id);
+        const nextClassStatus = selectedConvert.foundation_class_status === "not_started" ? "in_progress"
+          : selectedConvert.foundation_class_status === "in_progress" ? "completed" : null;
+
+        return (
+          <DetailDrawer
+            open
+            onClose={() => setSelectedConvert(null)}
+            title={selectedConvert.full_name}
+            subtitle={cell?.name}
+            actions={
+              <>
+                {refresh && nextClassStatus && (
+                  <button
+                    onClick={async () => {
+                      try {
+                        await db.updateNewConvert(selectedConvert.id, { foundation_class_status: nextClassStatus as any });
+                        toast.success(`Foundation class marked ${nextClassStatus.replace("_", " ")}!`);
+                        refresh?.();
+                        setSelectedConvert(null);
+                      } catch {
+                        toast.error("Failed to update convert");
+                      }
+                    }}
+                    className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+                  >
+                    Mark {nextClassStatus === "in_progress" ? "Class Started" : "Class Completed"}
+                  </button>
+                )}
+                {onNavigate && (
+                  <button
+                    onClick={() => { onNavigate("followups"); setSelectedConvert(null); }}
+                    className="rounded-lg border border-border bg-card px-4 py-2 text-xs font-semibold text-foreground hover:bg-muted transition-colors"
+                  >
+                    Add Follow-up
+                  </button>
+                )}
+              </>
+            }
+          >
+            <DetailSection label="Profile">
+              <DetailRow label="Phone" value={selectedConvert.phone_number} />
+              <DetailRow label="Home Cell" value={cell?.name || "—"} />
+              <DetailRow label="Date of Salvation" value={selectedConvert.date_of_salvation} />
+            </DetailSection>
+
+            <DetailSection label="Discipleship">
+              <DetailRow label="Baptism Status" value={selectedConvert.baptism_status.replace("_", " ")} />
+              <DetailRow label="Baptism Date" value={selectedConvert.baptism_date} />
+              <DetailRow label="Foundation Class" value={selectedConvert.foundation_class_status.replace("_", " ")} />
+              <DetailRow label="Notes" value={selectedConvert.notes} />
+            </DetailSection>
+
+            <DetailSection label="Follow-up History">
+              {convertFollowUps.length > 0 ? (
+                <div className="space-y-2">
+                  {convertFollowUps.slice(0, 5).map((f) => (
+                    <div key={f.id} className="text-xs bg-muted/10 rounded-lg p-2.5">
+                      <div className="font-semibold text-foreground">{f.follow_up_date} • {f.follow_up_method}</div>
+                      <div className="text-muted-foreground mt-0.5">{f.outcome}</div>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <p className="text-xs text-muted-foreground">No follow-ups recorded yet.</p>
+              )}
+            </DetailSection>
+          </DetailDrawer>
+        );
+      })()}
     </div>
   );
 }
