@@ -4,7 +4,7 @@ import bishopOyedepo from "@/assets/Bishop-David-Oyedepo.webp";
 import oyedepoPortrait from "@/assets/oyedepo-portrain.jpeg";
 import oyedepoJrPortrait from "@/assets/oyedepo-jr-portrait.jpg";
 import faithOyedepoPortrait from "@/assets/faith-oyedepo-portrait.png";
-import imohiPortrait from "@/assets/imohi-portrait.jpeg";
+import lebaPortrait from "@/assets/leba-portrait.jpg";
 
 const TITLE_WORDS = new Set(["pastor", "bishop", "mrs", "mr", "dr", "rev", "prof", "elder", "deacon"]);
 
@@ -46,9 +46,9 @@ function AboutPage() {
       image: oyedepoJrPortrait,
     },
     {
-      name: "Pastor Andrew Imohi",
+      name: "Pastor Daniel Leba",
       role: "National Pastor, Tanzania",
-      image: imohiPortrait,
+      image: lebaPortrait,
     },
   ];
 
