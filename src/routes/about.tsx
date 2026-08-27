@@ -3,6 +3,7 @@ import oyedepo from "@/assets/oyedepo.png";
 import bishopOyedepo from "@/assets/Bishop-David-Oyedepo.webp";
 import oyedepoPortrait from "@/assets/oyedepo-portrain.jpeg";
 import oyedepoJrPortrait from "@/assets/oyedepo-jr-portrait.jpg";
+import faithOyedepoPortrait from "@/assets/faith-oyedepo-portrait.png";
 import imohiPortrait from "@/assets/imohi-portrait.jpeg";
 
 const TITLE_WORDS = new Set(["pastor", "bishop", "mrs", "mr", "dr", "rev", "prof", "elder", "deacon"]);
@@ -37,6 +38,7 @@ function AboutPage() {
     {
       name: "Pastor (Mrs.) Faith Oyedepo",
       role: "Vice President, Education",
+      image: faithOyedepoPortrait,
     },
     {
       name: "Pastor David Oyedepo Jr.",
