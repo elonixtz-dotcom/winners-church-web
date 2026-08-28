@@ -1,4 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
+import { useState } from "react";
+import { db } from "@/lib/db";
+import { toast } from "sonner";
 
 export const Route = createFileRoute("/contact")({
   head: () => ({
@@ -13,6 +16,32 @@ export const Route = createFileRoute("/contact")({
 });
 
 function ContactPage() {
+  const [fullName, setFullName] = useState("");
+  const [email, setEmail] = useState("");
+  const [message, setMessage] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+  const [success, setSuccess] = useState(false);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!fullName || !email || !message) {
+      toast.error("Please fill in your name, email, and message.");
+      return;
+    }
+
+    setSubmitting(true);
+    try {
+      await db.addContactMessage({ full_name: fullName, email, message });
+      setSuccess(true);
+      toast.success("Your message has been sent.");
+    } catch (err) {
+      console.error(err);
+      toast.error("Failed to send your message. Please try again.");
+    } finally {
+      setSubmitting(false);
+    }
+  };
+
   return (
     <>
       <section className="py-16 md:py-24 bg-warm">
@@ -89,41 +118,73 @@ function ContactPage() {
 
             <div>
               <h2 className="font-heading text-2xl font-bold text-foreground mb-8">Send a Message</h2>
-              <form className="space-y-5" onSubmit={(e) => e.preventDefault()}>
-                <div>
-                  <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">Full Name</label>
-                  <input
-                    type="text"
-                    id="name"
-                    className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="Your name"
-                  />
+              {success ? (
+                <div className="bg-card border border-border/40 rounded-2xl p-6 text-center">
+                  <p className="text-foreground font-semibold mb-1">Message sent!</p>
+                  <p className="text-sm text-muted-foreground mb-4">Thank you for reaching out. We'll get back to you soon.</p>
+                  <button
+                    onClick={() => {
+                      setSuccess(false);
+                      setFullName("");
+                      setEmail("");
+                      setMessage("");
+                    }}
+                    className="text-sm font-semibold text-primary hover:underline"
+                  >
+                    Send another message
+                  </button>
                 </div>
-                <div>
-                  <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">Email</label>
-                  <input
-                    type="email"
-                    id="email"
-                    className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
-                    placeholder="your@email.com"
-                  />
-                </div>
-                <div>
-                  <label htmlFor="message" className="block text-sm font-medium text-foreground mb-1">Message</label>
-                  <textarea
-                    id="message"
-                    rows={5}
-                    className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
-                    placeholder="How can we help you?"
-                  />
-                </div>
-                <button
-                  type="submit"
-                  className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-                >
-                  Send Message
-                </button>
-              </form>
+              ) : (
+                <form className="space-y-5" onSubmit={handleSubmit}>
+                  <div>
+                    <label htmlFor="name" className="block text-sm font-medium text-foreground mb-1">Full Name</label>
+                    <input
+                      type="text"
+                      id="name"
+                      value={fullName}
+                      onChange={(e) => setFullName(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="Your name"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="email" className="block text-sm font-medium text-foreground mb-1">Email</label>
+                    <input
+                      type="email"
+                      id="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+                      placeholder="your@email.com"
+                      required
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="message" className="block text-sm font-medium text-foreground mb-1">Message</label>
+                    <textarea
+                      id="message"
+                      rows={5}
+                      value={message}
+                      onChange={(e) => setMessage(e.target.value)}
+                      className="w-full rounded-lg border border-input bg-card px-4 py-3 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring resize-none"
+                      placeholder="How can we help you?"
+                      required
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={submitting}
+                    className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                  >
+                    {submitting ? (
+                      <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
+                    ) : (
+                      "Send Message"
+                    )}
+                  </button>
+                </form>
+              )}
             </div>
           </div>
         </div>

@@ -252,6 +252,15 @@ export interface PrayerWallRequest {
   created_at: string;
 }
 
+export interface ContactMessage {
+  id: string;
+  full_name: string;
+  email: string;
+  message: string;
+  status: "new" | "read" | "responded";
+  created_at: string;
+}
+
 export interface Book {
   id: string;
   title: string;
@@ -701,6 +710,30 @@ class LocalStorageDatabase {
     if (idx === -1) throw new Error("Prayer request not found");
     list[idx] = { ...list[idx], ...updates };
     this.set("prayer_wall_requests", list);
+    return list[idx];
+  }
+
+  // --- Contact Messages (public site submissions) ---
+  getContactMessages(): ContactMessage[] {
+    return this.get<ContactMessage>("contact_messages").sort(
+      (a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+  }
+  addContactMessage(message: Omit<ContactMessage, "id" | "status" | "created_at">): ContactMessage {
+    const list = this.getContactMessages();
+    const newMessage: ContactMessage = {
+      ...message, id: crypto.randomUUID(), status: "new", created_at: new Date().toISOString()
+    };
+    list.push(newMessage);
+    this.set("contact_messages", list);
+    return newMessage;
+  }
+  updateContactMessage(id: string, updates: Partial<ContactMessage>): ContactMessage {
+    const list = this.getContactMessages();
+    const idx = list.findIndex(m => m.id === id);
+    if (idx === -1) throw new Error("Contact message not found");
+    list[idx] = { ...list[idx], ...updates };
+    this.set("contact_messages", list);
     return list[idx];
   }
 
@@ -1345,6 +1378,35 @@ export const db = {
       return data as PrayerWallRequest;
     }
     return mockDb.updatePrayerWallRequest(id, updates);
+  },
+
+  // --- Contact Messages (public site submissions) ---
+  getContactMessages: async (): Promise<ContactMessage[]> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("contact_messages").select("*").order("created_at", { ascending: false });
+      if (error) throw error;
+      return data as ContactMessage[];
+    }
+    return mockDb.getContactMessages();
+  },
+  addContactMessage: async (message: Omit<ContactMessage, "id" | "status" | "created_at">): Promise<void> => {
+    if (isSupabaseConfigured && supabase) {
+      // Public visitors can INSERT (RLS: "Anyone can submit a contact message") but cannot
+      // SELECT this table, and .select() on an insert asks PostgREST to read the row back -
+      // which fails RLS for them. Insert without requesting representation.
+      const { error } = await supabase.from("contact_messages").insert([message]);
+      if (error) throw error;
+      return;
+    }
+    mockDb.addContactMessage(message);
+  },
+  updateContactMessage: async (id: string, updates: Partial<ContactMessage>): Promise<ContactMessage> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("contact_messages").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data as ContactMessage;
+    }
+    return mockDb.updateContactMessage(id, updates);
   },
 
   // --- Books ---

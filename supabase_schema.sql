@@ -7,6 +7,7 @@
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
 -- Clean existing tables if needed (doing a fresh reset) - reverse order of dependencies
+DROP TABLE IF EXISTS contact_messages CASCADE;
 DROP TABLE IF EXISTS prayer_wall_requests CASCADE;
 DROP TABLE IF EXISTS cell_membership_requests CASCADE;
 DROP TABLE IF EXISTS sermons CASCADE;
@@ -387,6 +388,18 @@ CREATE TABLE prayer_wall_requests (
 );
 
 -- =========================================================================
+-- 20. CONTACT MESSAGES TABLE (Public website "Contact Us" form submissions)
+-- =========================================================================
+CREATE TABLE contact_messages (
+    id UUID PRIMARY KEY DEFAULT uuid_generate_v4(),
+    full_name TEXT NOT NULL,
+    email TEXT NOT NULL,
+    message TEXT NOT NULL,
+    status TEXT NOT NULL DEFAULT 'new' CHECK (status IN ('new', 'read', 'responded')),
+    created_at TIMESTAMP WITH TIME ZONE DEFAULT NOW() NOT NULL
+);
+
+-- =========================================================================
 -- INDEXES FOR PERFORMANCE
 -- =========================================================================
 CREATE INDEX idx_home_cells_district ON home_cells(district_id);
@@ -448,6 +461,7 @@ ALTER TABLE announcements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE sermons ENABLE ROW LEVEL SECURITY;
 ALTER TABLE cell_membership_requests ENABLE ROW LEVEL SECURITY;
 ALTER TABLE prayer_wall_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE contact_messages ENABLE ROW LEVEL SECURITY;
 
 -- =========================================================================
 -- ZONES POLICIES
@@ -468,7 +482,7 @@ CREATE POLICY "Admins, super admins, and zone pastors can manage districts" ON d
 -- =========================================================================
 -- USERS POLICIES
 -- =========================================================================
-CREATE POLICY "All authenticated users can read all profiles" ON users FOR SELECT USING (true);
+CREATE POLICY "All authenticated users can read all profiles" ON users FOR SELECT USING (auth.uid() IS NOT NULL);
 CREATE POLICY "Super admins and church admins can manage users" ON users FOR ALL USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
@@ -756,6 +770,20 @@ CREATE POLICY "Pastors and admins can manage prayer wall requests" ON prayer_wal
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );
 CREATE POLICY "Admins can delete prayer wall requests" ON prayer_wall_requests FOR DELETE USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
+);
+
+-- =========================================================================
+-- CONTACT MESSAGES POLICIES
+-- =========================================================================
+CREATE POLICY "Anyone can submit a contact message" ON contact_messages FOR INSERT WITH CHECK (true);
+CREATE POLICY "Pastors and admins can view contact messages" ON contact_messages FOR SELECT USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Pastors and admins can manage contact messages" ON contact_messages FOR UPDATE USING (
+    public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
+);
+CREATE POLICY "Admins can delete contact messages" ON contact_messages FOR DELETE USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin')
 );
 

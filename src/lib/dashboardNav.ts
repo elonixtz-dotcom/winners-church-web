@@ -1,7 +1,7 @@
 import {
   LayoutDashboard, Users, UserPlus, Sprout, Home, Calendar, ClipboardCheck,
   PhoneCall, HandHeart, BookOpen, Globe2, Map, CalendarDays, Megaphone,
-  BookText, Library, Wallet, BarChart3, UserCog, ClipboardList,
+  BookText, Library, Wallet, BarChart3, UserCog, ClipboardList, Mail,
   type LucideIcon,
 } from "lucide-react";
 import type { Role } from "@/lib/permissions";
@@ -40,6 +40,7 @@ export function getDashboardNav(role: Role): NavGroup[] {
             { id: "followups", label: "Follow-ups", icon: PhoneCall },
             { id: "prayers", label: "Prayer Requests", icon: HandHeart },
             { id: "testimonies", label: "Testimonies", icon: BookOpen },
+            { id: "requests", label: "Membership Requests", icon: ClipboardList },
           ],
         },
         {
@@ -58,7 +59,12 @@ export function getDashboardNav(role: Role): NavGroup[] {
         },
         { group: "Finance", items: [{ id: "offerings", label: "Offerings", icon: Wallet }] },
         { group: "Insights", items: [{ id: "reports", label: "Reports", icon: BarChart3 }] },
-        { group: "System", items: [{ id: "users", label: "Users", icon: UserCog }] },
+        {
+          group: "System", items: [
+            { id: "messages", label: "Contact Messages", icon: Mail },
+            { id: "users", label: "Users", icon: UserCog },
+          ],
+        },
       ];
 
     case "district_pastor":
@@ -79,10 +85,12 @@ export function getDashboardNav(role: Role): NavGroup[] {
             { id: "followups", label: "Follow-ups", icon: PhoneCall },
             { id: "prayers", label: "Prayer Requests", icon: HandHeart },
             { id: "testimonies", label: "Testimonies", icon: BookOpen },
+            { id: "requests", label: "Membership Requests", icon: ClipboardList },
           ],
         },
         { group: "Finance", items: [{ id: "offerings", label: "Offerings", icon: Wallet }] },
         { group: "Insights", items: [{ id: "reports", label: "Reports", icon: BarChart3 }] },
+        { group: "System", items: [{ id: "messages", label: "Contact Messages", icon: Mail }] },
       ];
 
     case "cell_leader":

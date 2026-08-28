@@ -18,6 +18,8 @@ import {
   MeetingRecord,
   NewConvert,
   PrayerRequest,
+  PrayerWallRequest,
+  ContactMessage,
   FollowUp,
   Testimony,
   Offering,
@@ -107,22 +109,24 @@ function DashboardHome() {
 
         if (user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") {
           // Load pastor/admin data
-          const [members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books, attendance] = await Promise.all([
+          const [members, reports, visitors, meetings, newConverts, prayers, wallPrayers, followUps, testimonies, offerings, requests, contactMessages, books, attendance] = await Promise.all([
             db.getMembers(),
             db.getWeeklyReports(),
             db.getVisitors(),
             db.getMeetingRecords(),
             db.getNewConverts(),
             db.getPrayerRequests(),
+            db.getPrayerWallRequests(),
             db.getFollowUps(),
             db.getAllTestimonies(),
             db.getOfferings(),
             db.getCellMembershipRequests(),
+            db.getContactMessages(),
             db.getBooks(),
             db.getAllAttendance(),
           ]);
 
-          setPastorData({ members, reports, visitors, meetings, newConverts, prayers, followUps, testimonies, offerings, requests, books, attendance });
+          setPastorData({ members, reports, visitors, meetings, newConverts, prayers, wallPrayers, followUps, testimonies, offerings, requests, contactMessages, books, attendance });
         } else if (user.role === "media_team") {
           // Load media data
           const [events, announcements, sermons, books] = await Promise.all([
@@ -328,8 +332,8 @@ interface PastorDashboardProps {
 function PastorDashboard({ activeTab, user, cells, zones, districts, users, data, refresh, onNavigate }: PastorDashboardProps) {
   const {
     members: allMembers, reports: allReports, visitors: allVisitors, meetings: allMeetings,
-    newConverts: allNewConverts, prayers, followUps, testimonies, offerings: allOfferings,
-    requests, books, attendance: allAttendance,
+    newConverts: allNewConverts, prayers, wallPrayers, followUps, testimonies, offerings: allOfferings,
+    requests: allRequests, contactMessages, books, attendance: allAttendance,
   } = data;
 
   // Zone/district pastors get a scope computed client-side from the org hierarchy
@@ -382,6 +386,7 @@ function PastorDashboard({ activeTab, user, cells, zones, districts, users, data
   const offerings = scopedCellIds ? allOfferings.filter((o: Offering) => scopedCellIds!.has(o.home_cell_id)) : allOfferings;
   const reports = scopedCellIds ? allReports.filter((r: WeeklyReport) => scopedCellIds!.has(r.home_cell_id)) : allReports;
   const attendance = scopedCellIds ? allAttendance.filter((a: AttendanceRecord) => scopedCellIds!.has(a.home_cell_id)) : allAttendance;
+  const requests = scopedCellIds ? allRequests.filter((r: CellMembershipRequest) => scopedCellIds!.has(r.home_cell_id)) : allRequests;
 
   const isSupervisor = user.role === "zone_pastor" || user.role === "district_pastor";
   const quickActions = isSupervisor ? buildSupervisorQuickActions(onNavigate) : buildOrgAdminQuickActions(onNavigate);
@@ -417,7 +422,9 @@ function PastorDashboard({ activeTab, user, cells, zones, districts, users, data
       {activeTab === "attendance" && <AdminAttendanceTab cells={scopedCells} members={members} meetings={meetings} />}
       {activeTab === "visitors" && <VisitorsTab visitors={visitors} cells={scopedCells} followUps={followUps} onNavigate={onNavigate} />}
       {activeTab === "converts" && <NewConvertsTab converts={newConverts} cells={scopedCells} followUps={followUps} onNavigate={onNavigate} />}
-      {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} cells={scopedCells} />}
+      {activeTab === "prayers" && <PrayerRequestsTab prayers={prayers} wallPrayers={wallPrayers} cells={scopedCells} refresh={refresh} />}
+      {activeTab === "requests" && <RequestsTab requests={requests} cells={scopedCells} refresh={refresh} />}
+      {activeTab === "messages" && <ContactMessagesTab messages={contactMessages} refresh={refresh} />}
       {activeTab === "followups" && <FollowUpsTab followUps={followUps} cells={scopedCells} />}
       {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={scopedCells} />}
       {activeTab === "offerings" && <OfferingsTab offerings={offerings} cells={scopedCells} />}
@@ -2212,9 +2219,22 @@ function NewConvertsTab({
 }
 
 // Prayer Requests Tab
-function PrayerRequestsTab({ prayers, cells, cellId, refresh }: { prayers: PrayerRequest[], cells: HomeCell[], cellId?: string, refresh?: () => void }) {
+function PrayerRequestsTab({ prayers, wallPrayers, cells, cellId, refresh }: { prayers: PrayerRequest[], wallPrayers?: PrayerWallRequest[], cells: HomeCell[], cellId?: string, refresh?: () => void }) {
   const [editing, setEditing] = useState<string | null>(null);
   const [form, setForm] = useState<Partial<PrayerRequest>>({ category: "general", status: "pending", testimony_received: false });
+  const [wallStatusSaving, setWallStatusSaving] = useState<string | null>(null);
+
+  const handleWallStatusChange = async (id: string, status: PrayerWallRequest["status"]) => {
+    setWallStatusSaving(id);
+    try {
+      await db.updatePrayerWallRequest(id, { status });
+      refresh?.();
+    } catch {
+      toast.error("Failed to update prayer request status");
+    } finally {
+      setWallStatusSaving(null);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -2368,6 +2388,57 @@ function PrayerRequestsTab({ prayers, cells, cellId, refresh }: { prayers: Praye
           ))}
         </div>
       </div>
+
+      {wallPrayers && (
+        <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
+          <h3 className="font-heading text-base font-bold text-foreground mb-1">Public Website Prayer Requests ({wallPrayers.length})</h3>
+          <p className="text-xs text-muted-foreground mb-4">Submitted via the church website's Prayer Request form - not tied to a home cell.</p>
+          <div className="space-y-3">
+            {wallPrayers.length === 0 && (
+              <p className="text-sm text-muted-foreground">No prayer requests submitted from the website yet.</p>
+            )}
+            {wallPrayers.map((p) => (
+              <div key={p.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+                <div className="flex justify-between items-start gap-3">
+                  <div>
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <h4 className="font-bold text-foreground">{p.full_name}</h4>
+                      <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full capitalize">
+                        {p.category.replace("_", " ")}
+                      </span>
+                      {p.is_confidential && (
+                        <span className="text-xs px-2 py-0.5 bg-muted text-muted-foreground rounded-full">
+                          🔒 Confidential
+                        </span>
+                      )}
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">{p.request}</p>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      {[p.phone_number, p.email].filter(Boolean).join(" · ") || "No contact info provided"}
+                    </p>
+                  </div>
+                  <select
+                    value={p.status}
+                    disabled={!refresh || wallStatusSaving === p.id}
+                    onChange={(e) => handleWallStatusChange(p.id, e.target.value as PrayerWallRequest["status"])}
+                    className={`text-xs px-2 py-1 rounded-full border-0 shrink-0 ${
+                      p.status === "answered" ? "bg-green-100 text-green-800" :
+                      p.status === "in_prayer" ? "bg-blue-100 text-blue-800" :
+                      p.status === "closed" ? "bg-muted text-muted-foreground" :
+                      "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    <option value="new">New</option>
+                    <option value="in_prayer">In Prayer</option>
+                    <option value="answered">Answered</option>
+                    <option value="closed">Closed</option>
+                  </select>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
@@ -3281,7 +3352,9 @@ function CellDetailsTab({ cell, refresh, canEdit = true }: { cell: HomeCell, ref
 }
 
 // Requests Tab
-function RequestsTab({ requests, cell, refresh }: { requests: CellMembershipRequest[], cell: HomeCell, refresh: () => void }) {
+function RequestsTab({ requests, cell, cells, refresh }: { requests: CellMembershipRequest[], cell?: HomeCell, cells?: HomeCell[], refresh: () => void }) {
+  const cellNameById = new Map((cells || (cell ? [cell] : [])).map((c) => [c.id, c.name]));
+
   const handleUpdateStatus = async (id: string, status: "approved" | "rejected") => {
     try {
       await db.updateCellMembershipRequest(id, { status });
@@ -3304,7 +3377,14 @@ function RequestsTab({ requests, cell, refresh }: { requests: CellMembershipRequ
               <div key={r.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
                 <div className="flex justify-between items-start">
                   <div>
-                    <h4 className="font-bold text-foreground">{r.first_name} {r.last_name}</h4>
+                    <div className="flex items-center gap-2">
+                      <h4 className="font-bold text-foreground">{r.first_name} {r.last_name}</h4>
+                      {cells && (
+                        <span className="text-xs px-2 py-0.5 bg-primary/10 text-primary rounded-full">
+                          {cellNameById.get(r.home_cell_id) || "Unknown Cell"}
+                        </span>
+                      )}
+                    </div>
                     <p className="text-xs text-muted-foreground">{r.phone_number}</p>
                     <p className="text-xs text-muted-foreground">{r.address}</p>
                     {r.occupation && <p className="text-xs text-muted-foreground">{r.occupation}</p>}
@@ -3334,6 +3414,63 @@ function RequestsTab({ requests, cell, refresh }: { requests: CellMembershipRequ
                       </div>
                     )}
                   </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+}
+
+// Contact Messages Tab (public "Contact Us" form submissions)
+function ContactMessagesTab({ messages, refresh }: { messages: ContactMessage[], refresh?: () => void }) {
+  const [saving, setSaving] = useState<string | null>(null);
+
+  const handleStatusChange = async (id: string, status: ContactMessage["status"]) => {
+    setSaving(id);
+    try {
+      await db.updateContactMessage(id, { status });
+      refresh?.();
+    } catch {
+      toast.error("Failed to update message status");
+    } finally {
+      setSaving(null);
+    }
+  };
+
+  return (
+    <div className="space-y-4">
+      <div className="bg-card rounded-2xl border border-border/40 p-5 shadow-sm">
+        <h3 className="font-heading text-base font-bold text-foreground mb-1">Contact Messages ({messages.length})</h3>
+        <p className="text-xs text-muted-foreground mb-4">Submitted via the church website's Contact Us form.</p>
+        {messages.length === 0 ? (
+          <p className="text-center text-muted-foreground py-8">No messages yet</p>
+        ) : (
+          <div className="space-y-3">
+            {messages.map((m) => (
+              <div key={m.id} className="p-4 bg-muted/10 rounded-xl border border-border/20">
+                <div className="flex justify-between items-start gap-3">
+                  <div>
+                    <h4 className="font-bold text-foreground">{m.full_name}</h4>
+                    <a href={`mailto:${m.email}`} className="text-xs text-primary hover:underline">{m.email}</a>
+                    <p className="text-xs text-muted-foreground mt-1">{m.message}</p>
+                  </div>
+                  <select
+                    value={m.status}
+                    disabled={!refresh || saving === m.id}
+                    onChange={(e) => handleStatusChange(m.id, e.target.value as ContactMessage["status"])}
+                    className={`text-xs px-2 py-1 rounded-full border-0 shrink-0 ${
+                      m.status === "responded" ? "bg-green-100 text-green-800" :
+                      m.status === "read" ? "bg-blue-100 text-blue-800" :
+                      "bg-yellow-100 text-yellow-800"
+                    }`}
+                  >
+                    <option value="new">New</option>
+                    <option value="read">Read</option>
+                    <option value="responded">Responded</option>
+                  </select>
                 </div>
               </div>
             ))}
