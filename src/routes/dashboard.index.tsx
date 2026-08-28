@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
-import { Menu, LogOut, Home } from "lucide-react";
+import { Menu, LogOut, Home, BookOpen } from "lucide-react";
 import {
   db,
   uploadMediaImage,
@@ -3485,10 +3485,34 @@ function ContactMessagesTab({ messages, refresh }: { messages: ContactMessage[],
 // Events Tab
 function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => void }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState<{ title: string; description: string; event_date: string; image_url: string }>({
     title: "", description: "", event_date: "", image_url: "",
   });
   const [uploading, setUploading] = useState(false);
+
+  const toLocalInputValue = (iso: string) => {
+    const d = new Date(iso);
+    const pad = (n: number) => String(n).padStart(2, "0");
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
+  };
+
+  const startEdit = (event: ChurchEvent) => {
+    setEditingId(event.id);
+    setForm({
+      title: event.title,
+      description: event.description,
+      event_date: toLocalInputValue(event.event_date),
+      image_url: event.image_url || "",
+    });
+    setShowForm(true);
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm({ title: "", description: "", event_date: "", image_url: "" });
+    setShowForm(false);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3508,18 +3532,23 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await db.addEvent({
+      const payload = {
         title: form.title,
         description: form.description,
         event_date: new Date(form.event_date).toISOString(),
         image_url: form.image_url || null,
-      });
-      toast.success("Event posted!");
-      setForm({ title: "", description: "", event_date: "", image_url: "" });
-      setShowForm(false);
+      };
+      if (editingId) {
+        await db.updateEvent(editingId, payload);
+        toast.success("Event updated!");
+      } else {
+        await db.addEvent(payload);
+        toast.success("Event posted!");
+      }
+      resetForm();
       refresh();
     } catch {
-      toast.error("Failed to post event");
+      toast.error(editingId ? "Failed to update event" : "Failed to post event");
     }
   };
 
@@ -3539,7 +3568,7 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
         <div className="flex items-center justify-between mb-4">
           <h3 className="font-heading text-base font-bold text-foreground">Events ({events.length})</h3>
           <button
-            onClick={() => setShowForm((s) => !s)}
+            onClick={() => (showForm ? resetForm() : setShowForm(true))}
             className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
           >
             {showForm ? "Cancel" : "+ Add Event"}
@@ -3576,7 +3605,7 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
               <input type="text" placeholder="https://example.com/photo.jpg" value={form.image_url.startsWith("data:") ? "" : form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="mt-1 w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
             </div>
             <div className="md:col-span-2">
-              <button type="submit" disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">Post Event</button>
+              <button type="submit" disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">{editingId ? "Update Event" : "Post Event"}</button>
             </div>
           </form>
         )}
@@ -3589,7 +3618,10 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
                 <p className="text-xs text-muted-foreground">{new Date(e.event_date).toLocaleString()}</p>
                 <p className="text-sm mt-1">{e.description}</p>
               </div>
-              <button onClick={() => handleDelete(e.id)} className="text-[11px] font-semibold text-destructive hover:underline shrink-0">Delete</button>
+              <div className="flex items-center gap-3 shrink-0">
+                <button onClick={() => startEdit(e)} className="text-[11px] font-semibold text-primary hover:underline">Edit</button>
+                <button onClick={() => handleDelete(e.id)} className="text-[11px] font-semibold text-destructive hover:underline">Delete</button>
+              </div>
             </div>
           ))}
         </div>
@@ -3601,18 +3633,35 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
 // Announcements Tab
 function AnnouncementsTab({ announcements, refresh }: { announcements: Announcement[], refresh: () => void }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({ title: "", content: "" });
+
+  const startEdit = (announcement: Announcement) => {
+    setEditingId(announcement.id);
+    setForm({ title: announcement.title, content: announcement.content });
+    setShowForm(true);
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm({ title: "", content: "" });
+    setShowForm(false);
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await db.addAnnouncement(form);
-      toast.success("Announcement posted!");
-      setForm({ title: "", content: "" });
-      setShowForm(false);
+      if (editingId) {
+        await db.updateAnnouncement(editingId, form);
+        toast.success("Announcement updated!");
+      } else {
+        await db.addAnnouncement(form);
+        toast.success("Announcement posted!");
+      }
+      resetForm();
       refresh();
     } catch {
-      toast.error("Failed to post announcement");
+      toast.error(editingId ? "Failed to update announcement" : "Failed to post announcement");
     }
   };
 
@@ -3631,7 +3680,7 @@ function AnnouncementsTab({ announcements, refresh }: { announcements: Announcem
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-heading text-base font-bold text-foreground">Announcements ({announcements.length})</h3>
         <button
-          onClick={() => setShowForm((s) => !s)}
+          onClick={() => (showForm ? resetForm() : setShowForm(true))}
           className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           {showForm ? "Cancel" : "+ Add Announcement"}
@@ -3648,7 +3697,7 @@ function AnnouncementsTab({ announcements, refresh }: { announcements: Announcem
             <label className="block font-bold text-muted-foreground uppercase mb-1">Content</label>
             <textarea required rows={3} value={form.content} onChange={(e) => setForm({ ...form, content: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground resize-none" />
           </div>
-          <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Announcement</button>
+          <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">{editingId ? "Update Announcement" : "Post Announcement"}</button>
         </form>
       )}
 
@@ -3659,7 +3708,10 @@ function AnnouncementsTab({ announcements, refresh }: { announcements: Announcem
               <h4 className="font-bold text-foreground">{a.title}</h4>
               <p className="text-sm mt-1">{a.content}</p>
             </div>
-            <button onClick={() => handleDelete(a.id)} className="text-[11px] font-semibold text-destructive hover:underline shrink-0">Delete</button>
+            <div className="flex items-center gap-3 shrink-0">
+              <button onClick={() => startEdit(a)} className="text-[11px] font-semibold text-primary hover:underline">Edit</button>
+              <button onClick={() => handleDelete(a.id)} className="text-[11px] font-semibold text-destructive hover:underline">Delete</button>
+            </div>
           </div>
         ))}
       </div>
@@ -3760,11 +3812,33 @@ function SermonsTab({ sermons, refresh }: { sermons: Sermon[], refresh: () => vo
 // Books Tab
 function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
   const [showForm, setShowForm] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [form, setForm] = useState({
     title: "", author: "", description: "", purchase_link: "", cover_image_url: "",
     price: "", currency: "TZS", categories: "",
   });
   const [uploading, setUploading] = useState(false);
+
+  const startEdit = (book: Book) => {
+    setEditingId(book.id);
+    setForm({
+      title: book.title,
+      author: book.author,
+      description: book.description || "",
+      purchase_link: book.purchase_link || "",
+      cover_image_url: book.cover_image_url || "",
+      price: book.price != null ? String(book.price) : "",
+      currency: book.currency || "TZS",
+      categories: book.categories ? book.categories.join(", ") : "",
+    });
+    setShowForm(true);
+  };
+
+  const resetForm = () => {
+    setEditingId(null);
+    setForm({ title: "", author: "", description: "", purchase_link: "", cover_image_url: "", price: "", currency: "TZS", categories: "" });
+    setShowForm(false);
+  };
 
   const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -3804,7 +3878,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     try {
-      await db.addBook({
+      const payload = {
         title: form.title,
         author: form.author,
         description: form.description,
@@ -3813,14 +3887,18 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
         price: form.price ? parseFloat(form.price) : null,
         currency: form.price ? form.currency : null,
         categories: form.categories ? form.categories.split(",").map((c) => c.trim()).filter(Boolean) : null,
-        is_approved: true,
-      });
-      toast.success("Book published!");
-      setForm({ title: "", author: "", description: "", purchase_link: "", cover_image_url: "", price: "", currency: "TZS", categories: "" });
-      setShowForm(false);
+      };
+      if (editingId) {
+        await db.updateBook(editingId, payload);
+        toast.success("Book updated!");
+      } else {
+        await db.addBook({ ...payload, is_approved: true });
+        toast.success("Book published!");
+      }
+      resetForm();
       refresh();
     } catch {
-      toast.error("Failed to add book");
+      toast.error(editingId ? "Failed to update book" : "Failed to add book");
     }
   };
 
@@ -3829,7 +3907,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-heading text-base font-bold text-foreground">Books ({books.length})</h3>
         <button
-          onClick={() => setShowForm((s) => !s)}
+          onClick={() => (showForm ? resetForm() : setShowForm(true))}
           className="rounded-lg bg-primary px-3 py-1.5 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
         >
           {showForm ? "Cancel" : "+ Add Book"}
@@ -3884,7 +3962,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
             <input type="text" value={form.categories} onChange={(e) => setForm({ ...form, categories: e.target.value })} placeholder="Faith, Prayer, Leadership" className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
           </div>
           <div className="md:col-span-2">
-            <button type="submit" disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">Publish Book</button>
+            <button type="submit" disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">{editingId ? "Update Book" : "Publish Book"}</button>
           </div>
         </form>
       )}
@@ -3895,8 +3973,8 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
             {b.cover_image_url ? (
               <img src={b.cover_image_url} alt={b.title} className="w-20 h-28 object-cover rounded" />
             ) : (
-              <div className="w-20 h-28 bg-primary/10 rounded flex items-center justify-center text-2xl">
-                📖
+              <div className="w-20 h-28 bg-primary/10 rounded flex items-center justify-center">
+                <BookOpen className="w-8 h-8 text-primary/40" />
               </div>
             )}
             <div className="flex-1">
@@ -3920,6 +3998,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
                     Approve & Publish
                   </button>
                 )}
+                <button onClick={() => startEdit(b)} className="text-[11px] font-semibold text-primary hover:underline">Edit</button>
                 <button onClick={() => handleDelete(b.id)} className="text-[11px] font-semibold text-destructive hover:underline">Delete</button>
               </div>
             </div>

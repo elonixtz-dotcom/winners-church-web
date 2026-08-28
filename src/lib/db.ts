@@ -643,6 +643,14 @@ class LocalStorageDatabase {
     const newEvent: ChurchEvent = { ...event, id: crypto.randomUUID(), created_at: new Date().toISOString() };
     list.push(newEvent); this.set("events", list); return newEvent;
   }
+  updateEvent(id: string, updates: Partial<ChurchEvent>): ChurchEvent {
+    const list = this.get<ChurchEvent>("events");
+    const idx = list.findIndex(e => e.id === id);
+    if (idx === -1) throw new Error("Event not found");
+    list[idx] = { ...list[idx], ...updates };
+    this.set("events", list);
+    return list[idx];
+  }
   deleteEvent(id: string): void { this.set("events", this.get<ChurchEvent>("events").filter(e => e.id !== id)); }
 
   // --- Announcements ---
@@ -655,6 +663,14 @@ class LocalStorageDatabase {
     const list = this.getAnnouncements();
     const newAnn: Announcement = { ...announcement, id: crypto.randomUUID(), created_at: new Date().toISOString() };
     list.push(newAnn); this.set("announcements", list); return newAnn;
+  }
+  updateAnnouncement(id: string, updates: Partial<Announcement>): Announcement {
+    const list = this.getAnnouncements();
+    const idx = list.findIndex(a => a.id === id);
+    if (idx === -1) throw new Error("Announcement not found");
+    list[idx] = { ...list[idx], ...updates };
+    this.set("announcements", list);
+    return list[idx];
   }
   deleteAnnouncement(id: string): void { this.set("announcements", this.getAnnouncements().filter(a => a.id !== id)); }
 
@@ -1506,6 +1522,14 @@ export const db = {
     }
     return mockDb.addEvent(event);
   },
+  updateEvent: async (id: string, updates: Partial<ChurchEvent>): Promise<ChurchEvent> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("events").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data as ChurchEvent;
+    }
+    return mockDb.updateEvent(id, updates);
+  },
   deleteEvent: async (id: string): Promise<void> => {
     if (isSupabaseConfigured && supabase) {
       const { error } = await supabase.from("events").delete().eq("id", id);
@@ -1531,6 +1555,14 @@ export const db = {
       return data as Announcement;
     }
     return mockDb.addAnnouncement(announcement);
+  },
+  updateAnnouncement: async (id: string, updates: Partial<Announcement>): Promise<Announcement> => {
+    if (isSupabaseConfigured && supabase) {
+      const { data, error } = await supabase.from("announcements").update(updates).eq("id", id).select().single();
+      if (error) throw error;
+      return data as Announcement;
+    }
+    return mockDb.updateAnnouncement(id, updates);
   },
   deleteAnnouncement: async (id: string): Promise<void> => {
     if (isSupabaseConfigured && supabase) {
