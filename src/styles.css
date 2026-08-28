@@ -142,3 +142,7 @@
   animation: fade-in-up 0.8s ease-out 0.4s forwards;
   opacity: 0;
 }
+
+.bg-hero-gradient {
+  background: linear-gradient(to top, oklch(0.13 0.035 30 / 92%) 0%, oklch(0.15 0.04 30 / 55%) 45%, oklch(0.15 0.04 30 / 20%) 100%);
+}
