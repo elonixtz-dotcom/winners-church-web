@@ -478,7 +478,9 @@ CREATE POLICY "Users can insert their own profile" ON users FOR INSERT WITH CHEC
 -- =========================================================================
 -- HOME CELLS POLICIES
 -- =========================================================================
-CREATE POLICY "All authenticated users can read cells" ON home_cells FOR SELECT USING (auth.uid() IS NOT NULL);
+-- Public (including unauthenticated site visitors) can read cells, so the
+-- public "Join a Home Cell" form can list them to choose from.
+CREATE POLICY "Anyone can view home cells" ON home_cells FOR SELECT USING (true);
 CREATE POLICY "Super admins, church admins, zone, and district pastors can manage cells" ON home_cells FOR ALL USING (
     public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'zone_pastor', 'district_pastor')
 );

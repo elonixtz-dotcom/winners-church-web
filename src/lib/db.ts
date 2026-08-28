@@ -1290,13 +1290,16 @@ export const db = {
     }
     return mockDb.getCellMembershipRequestsByCell(cellId);
   },
-  addCellMembershipRequest: async (request: Omit<CellMembershipRequest, "id" | "status" | "created_at">): Promise<CellMembershipRequest> => {
+  addCellMembershipRequest: async (request: Omit<CellMembershipRequest, "id" | "status" | "created_at">): Promise<void> => {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from("cell_membership_requests").insert([request]).select().single();
+      // Public visitors can INSERT (RLS: "Anyone can submit a membership request") but cannot
+      // SELECT this table, and .select() on an insert asks PostgREST to read the row back -
+      // which fails RLS for them. Insert without requesting representation.
+      const { error } = await supabase.from("cell_membership_requests").insert([request]);
       if (error) throw error;
-      return data as CellMembershipRequest;
+      return;
     }
-    return mockDb.addCellMembershipRequest(request);
+    mockDb.addCellMembershipRequest(request);
   },
   updateCellMembershipRequest: async (id: string, updates: Partial<CellMembershipRequest>): Promise<CellMembershipRequest> => {
     if (isSupabaseConfigured && supabase) {
@@ -1324,13 +1327,16 @@ export const db = {
     }
     return mockDb.getPrayerWallRequests();
   },
-  addPrayerWallRequest: async (request: Omit<PrayerWallRequest, "id" | "status" | "created_at">): Promise<PrayerWallRequest> => {
+  addPrayerWallRequest: async (request: Omit<PrayerWallRequest, "id" | "status" | "created_at">): Promise<void> => {
     if (isSupabaseConfigured && supabase) {
-      const { data, error } = await supabase.from("prayer_wall_requests").insert([request]).select().single();
+      // Public visitors can INSERT (RLS: "Anyone can submit a prayer request") but cannot
+      // SELECT this table, and .select() on an insert asks PostgREST to read the row back -
+      // which fails RLS for them. Insert without requesting representation.
+      const { error } = await supabase.from("prayer_wall_requests").insert([request]);
       if (error) throw error;
-      return data as PrayerWallRequest;
+      return;
     }
-    return mockDb.addPrayerWallRequest(request);
+    mockDb.addPrayerWallRequest(request);
   },
   updatePrayerWallRequest: async (id: string, updates: Partial<PrayerWallRequest>): Promise<PrayerWallRequest> => {
     if (isSupabaseConfigured && supabase) {
