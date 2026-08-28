@@ -1,7 +1,7 @@
 import { createFileRoute, useNavigate } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { toast } from "sonner";
-import { Menu, LogOut, Home, BookOpen } from "lucide-react";
+import { Menu, LogOut, Home, BookOpen, ImagePlus } from "lucide-react";
 import {
   db,
   uploadMediaImage,
@@ -3490,6 +3490,7 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
     title: "", description: "", event_date: "", image_url: "",
   });
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const toLocalInputValue = (iso: string) => {
     const d = new Date(iso);
@@ -3591,8 +3592,16 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
             </div>
             <div>
               <label className="block font-bold text-muted-foreground uppercase mb-1">Photo (optional)</label>
-              <input type="file" accept="image/*" onChange={handleFileSelect} disabled={uploading} className="w-full text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-primary-foreground file:cursor-pointer" />
-              {uploading && <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">Uploading...</p>}
+              <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} disabled={uploading} className="hidden" />
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                disabled={uploading}
+                className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
+              >
+                <ImagePlus className="w-3.5 h-3.5" />
+                {uploading ? "Uploading..." : "Choose Photo from Device"}
+              </button>
               {form.image_url && !uploading && (
                 <div className="mt-2 flex items-center gap-2">
                   <img src={form.image_url} alt="" className="h-12 w-12 rounded object-cover border border-border" />
@@ -3818,6 +3827,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
     price: "", currency: "TZS", categories: "",
   });
   const [uploading, setUploading] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
 
   const startEdit = (book: Book) => {
     setEditingId(book.id);
@@ -3934,8 +3944,16 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
           </div>
           <div>
             <label className="block font-bold text-muted-foreground uppercase mb-1">Cover Photo (optional)</label>
-            <input type="file" accept="image/*" onChange={handleFileSelect} disabled={uploading} className="w-full text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-primary-foreground file:cursor-pointer" />
-            {uploading && <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">Uploading...</p>}
+            <input ref={fileInputRef} type="file" accept="image/*" onChange={handleFileSelect} disabled={uploading} className="hidden" />
+            <button
+              type="button"
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="inline-flex items-center gap-2 rounded-lg bg-primary px-3 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50 cursor-pointer"
+            >
+              <ImagePlus className="w-3.5 h-3.5" />
+              {uploading ? "Uploading..." : "Choose Photo from Device"}
+            </button>
             {form.cover_image_url && !uploading && (
               <div className="mt-2 flex items-center gap-2">
                 <img src={form.cover_image_url} alt="" className="h-12 w-9 rounded object-cover border border-border" />
