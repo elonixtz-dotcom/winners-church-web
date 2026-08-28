@@ -4,6 +4,7 @@ import { toast } from "sonner";
 import { Menu, LogOut, Home } from "lucide-react";
 import {
   db,
+  uploadMediaImage,
   UserProfile,
   HomeCell,
   Member,
@@ -3487,6 +3488,22 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
   const [form, setForm] = useState<{ title: string; description: string; event_date: string; image_url: string }>({
     title: "", description: "", event_date: "", image_url: "",
   });
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadMediaImage(file, "events");
+      setForm((f) => ({ ...f, image_url: url }));
+    } catch {
+      toast.error("Failed to upload photo");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -3544,14 +3561,22 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
               <input type="datetime-local" required value={form.event_date} onChange={(e) => setForm({ ...form, event_date: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
             </div>
             <div>
-              <label className="block font-bold text-muted-foreground uppercase mb-1">Image URL (optional)</label>
-              <input type="text" placeholder="https://example.com/photo.jpg" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+              <label className="block font-bold text-muted-foreground uppercase mb-1">Photo (optional)</label>
+              <input type="file" accept="image/*" onChange={handleFileSelect} disabled={uploading} className="w-full text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-primary-foreground file:cursor-pointer" />
+              {uploading && <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">Uploading...</p>}
+              {form.image_url && !uploading && (
+                <div className="mt-2 flex items-center gap-2">
+                  <img src={form.image_url} alt="" className="h-12 w-12 rounded object-cover border border-border" />
+                  <button type="button" onClick={() => setForm({ ...form, image_url: "" })} className="text-[10px] font-semibold text-destructive normal-case">Remove</button>
+                </div>
+              )}
               <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">
-                Must be a direct link to an image file. A Facebook/Instagram post link won't work - open the photo itself, right-click it, and copy its image address.
+                Or paste a direct image link instead - a Facebook/Instagram post link won't work, only a link straight to the photo file.
               </p>
+              <input type="text" placeholder="https://example.com/photo.jpg" value={form.image_url.startsWith("data:") ? "" : form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="mt-1 w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
             </div>
             <div className="md:col-span-2">
-              <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Event</button>
+              <button type="submit" disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">Post Event</button>
             </div>
           </form>
         )}
@@ -3739,6 +3764,22 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
     title: "", author: "", description: "", purchase_link: "", cover_image_url: "",
     price: "", currency: "TZS", categories: "",
   });
+  const [uploading, setUploading] = useState(false);
+
+  const handleFileSelect = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    setUploading(true);
+    try {
+      const url = await uploadMediaImage(file, "books");
+      setForm((f) => ({ ...f, cover_image_url: url }));
+    } catch {
+      toast.error("Failed to upload cover");
+    } finally {
+      setUploading(false);
+      e.target.value = "";
+    }
+  };
 
   const handleApprove = async (id: string) => {
     try {
@@ -3814,11 +3855,19 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
             <input type="text" value={form.purchase_link} onChange={(e) => setForm({ ...form, purchase_link: e.target.value })} placeholder="https://..." className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
           </div>
           <div>
-            <label className="block font-bold text-muted-foreground uppercase mb-1">Cover Image URL (optional)</label>
-            <input type="text" placeholder="https://example.com/cover.jpg" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            <label className="block font-bold text-muted-foreground uppercase mb-1">Cover Photo (optional)</label>
+            <input type="file" accept="image/*" onChange={handleFileSelect} disabled={uploading} className="w-full text-foreground file:mr-3 file:rounded-lg file:border-0 file:bg-primary file:px-3 file:py-2 file:text-xs file:font-semibold file:text-primary-foreground file:cursor-pointer" />
+            {uploading && <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">Uploading...</p>}
+            {form.cover_image_url && !uploading && (
+              <div className="mt-2 flex items-center gap-2">
+                <img src={form.cover_image_url} alt="" className="h-12 w-9 rounded object-cover border border-border" />
+                <button type="button" onClick={() => setForm({ ...form, cover_image_url: "" })} className="text-[10px] font-semibold text-destructive normal-case">Remove</button>
+              </div>
+            )}
             <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">
-              Must be a direct link to an image file. A Facebook/Instagram post link won't work - open the photo itself, right-click it, and copy its image address.
+              Or paste a direct image link instead - a Facebook/Instagram post link won't work, only a link straight to the photo file.
             </p>
+            <input type="text" placeholder="https://example.com/cover.jpg" value={form.cover_image_url.startsWith("data:") ? "" : form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="mt-1 w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>
@@ -3835,7 +3884,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
             <input type="text" value={form.categories} onChange={(e) => setForm({ ...form, categories: e.target.value })} placeholder="Faith, Prayer, Leadership" className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
           </div>
           <div className="md:col-span-2">
-            <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Publish Book</button>
+            <button type="submit" disabled={uploading} className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors disabled:opacity-50">Publish Book</button>
           </div>
         </form>
       )}

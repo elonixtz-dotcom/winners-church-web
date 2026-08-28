@@ -788,6 +788,24 @@ CREATE POLICY "Admins can delete contact messages" ON contact_messages FOR DELET
 );
 
 -- =========================================================================
+-- MEDIA STORAGE BUCKET (admin-uploaded event/book photos)
+-- =========================================================================
+INSERT INTO storage.buckets (id, name, public)
+VALUES ('media', 'media', true)
+ON CONFLICT (id) DO NOTHING;
+
+CREATE POLICY "Anyone can view media" ON storage.objects FOR SELECT USING (bucket_id = 'media');
+CREATE POLICY "Media, pastors, and admins can upload media" ON storage.objects FOR INSERT WITH CHECK (
+    bucket_id = 'media' AND public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'media_team')
+);
+CREATE POLICY "Media, pastors, and admins can update media" ON storage.objects FOR UPDATE USING (
+    bucket_id = 'media' AND public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'media_team')
+);
+CREATE POLICY "Media, pastors, and admins can delete media" ON storage.objects FOR DELETE USING (
+    bucket_id = 'media' AND public.get_user_role(auth.uid()) IN ('super_admin', 'church_admin', 'media_team')
+);
+
+-- =========================================================================
 -- AUTOMATIC USER SYNC TRIGGER
 -- =========================================================================
 DROP TRIGGER IF EXISTS on_auth_user_created ON auth.users;

@@ -308,6 +308,27 @@ export const supabase = isSupabaseConfigured
   ? createClient(supabaseUrl, supabaseAnonKey)
   : null;
 
+// Uploads an admin-picked file to the public "media" storage bucket and
+// returns its public URL, so forms can offer a real file picker instead of
+// requiring a pasted external link (which often isn't a direct image URL).
+export async function uploadMediaImage(file: File, folder: "events" | "books"): Promise<string> {
+  if (isSupabaseConfigured && supabase) {
+    const ext = file.name.split(".").pop() || "jpg";
+    const path = `${folder}/${crypto.randomUUID()}.${ext}`;
+    const { error } = await supabase.storage.from("media").upload(path, file);
+    if (error) throw error;
+    return supabase.storage.from("media").getPublicUrl(path).data.publicUrl;
+  }
+  // No Supabase configured (local/dev mode) - fall back to a data URL so
+  // the upload still works for local testing.
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = () => resolve(reader.result as string);
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
 // =========================================================================
 // 3. PERSISTENT MOCK DATABASE LAYER (localStorage fallback)
 // =========================================================================
