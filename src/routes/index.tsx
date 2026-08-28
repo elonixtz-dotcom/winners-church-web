@@ -286,7 +286,7 @@ function HomePage() {
                   className="w-full h-full object-cover transition-transform duration-[600ms] ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.06]"
                   loading="lazy"
                 />
-                <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-foreground/80 to-transparent opacity-0 translate-y-1.5 transition-all duration-300 ease-out group-hover:opacity-100 group-hover:translate-y-0">
+                <div className="absolute inset-x-0 bottom-0 p-3.5 bg-gradient-to-t from-foreground/80 to-transparent opacity-100 translate-y-0 sm:opacity-0 sm:translate-y-1.5 transition-all duration-300 ease-out sm:group-hover:opacity-100 sm:group-hover:translate-y-0">
                   <span className="text-primary-foreground text-xs font-semibold">
                     {item.label}
                   </span>
