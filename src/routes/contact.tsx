@@ -44,20 +44,20 @@ function ContactPage() {
 
   return (
     <>
-      <section className="py-16 md:py-24 bg-warm">
+      <section className="py-24 md:py-28 bg-warm">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold text-foreground">Contact Us</h1>
-          <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
+          <h1 className="font-heading text-4xl md:text-5xl font-semibold tracking-tight text-foreground">Contact Us</h1>
+          <p className="mt-4 text-base md:text-lg text-muted-foreground max-w-2xl mx-auto leading-relaxed">
             We'd love to hear from you. Reach out or visit us — you're always welcome.
           </p>
         </div>
       </section>
 
-      <section className="py-16 md:py-20">
+      <section className="py-24 md:py-28">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-12">
             <div>
-              <h2 className="font-heading text-2xl font-bold text-foreground mb-8">Get in Touch</h2>
+              <h2 className="font-heading text-2xl font-semibold text-foreground mb-8">Get in Touch</h2>
               <div className="space-y-6">
                 <div className="flex items-start gap-4">
                   <div className="flex-shrink-0 w-12 h-12 rounded-full bg-gold/15 flex items-center justify-center">
@@ -117,9 +117,9 @@ function ContactPage() {
             </div>
 
             <div>
-              <h2 className="font-heading text-2xl font-bold text-foreground mb-8">Send a Message</h2>
+              <h2 className="font-heading text-2xl font-semibold text-foreground mb-8">Send a Message</h2>
               {success ? (
-                <div className="bg-card border border-border/40 rounded-2xl p-6 text-center">
+                <div className="bg-card border border-border/40 rounded-xl p-6 text-center">
                   <p className="text-foreground font-semibold mb-1">Message sent!</p>
                   <p className="text-sm text-muted-foreground mb-4">Thank you for reaching out. We'll get back to you soon.</p>
                   <button
@@ -175,7 +175,7 @@ function ContactPage() {
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="w-full rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                    className="w-full rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
                   >
                     {submitting ? (
                       <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>

@@ -135,7 +135,7 @@ export default function Header() {
             {user ? (
               <Link
                 to="/dashboard"
-                className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all hover:bg-primary/90 hover:scale-105"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-5 py-2 text-xs font-semibold text-primary-foreground shadow-sm transition-all duration-200 ease-out hover:bg-primary/90 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98]"
               >
                 Go to Dashboard
               </Link>
@@ -145,7 +145,7 @@ export default function Header() {
                   setAuthDefaultTab("signup");
                   setIsAuthModalOpen(true);
                 }}
-                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-md transition-all hover:bg-primary/95 hover:scale-105 focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer"
+                className="inline-flex items-center justify-center rounded-full bg-primary px-6 py-2 text-sm font-semibold text-primary-foreground shadow-md transition-all duration-200 ease-out hover:bg-primary/95 hover:-translate-y-0.5 active:translate-y-0 active:scale-[0.98] focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 cursor-pointer"
               >
                 Join Now
               </button>

@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router"
 import { useEffect, useState } from "react"
 import { db, Book } from "@/lib/db"
+import { BookOpen, ShoppingCart } from "lucide-react"
 
 export const Route = createFileRoute("/books/$bookId")({
   component: BookDetailPage,
@@ -48,9 +49,9 @@ function BookDetailPage() {
   if (!book) {
     return (
       <div className="py-20 text-center">
-        <div className="text-6xl mb-4">📚</div>
-        <h3 className="text-xl font-bold text-foreground mb-2">Book not found</h3>
-        <Link to="/books" className="text-primary hover:underline">
+        <BookOpen className="w-7 h-7 text-primary mx-auto mb-5" />
+        <h3 className="font-heading text-lg font-semibold text-foreground mb-2">Book not found</h3>
+        <Link to="/books" className="text-sm text-primary hover:underline">
           Back to all books
         </Link>
       </div>
@@ -58,9 +59,10 @@ function BookDetailPage() {
   }
 
   return (
-    <div className="py-16 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
-      <Link to="/books" className="inline-flex items-center gap-2 text-muted-foreground hover:text-foreground mb-8">
-        ← Back to all books
+    <div className="py-24 md:py-28 px-4 sm:px-6 lg:px-8 max-w-7xl mx-auto">
+      <Link to="/books" className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground mb-10">
+        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
+        Back to all books
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-10">
@@ -68,7 +70,7 @@ function BookDetailPage() {
         <div className="lg:col-span-1">
           <div className="sticky top-8">
             {book.cover_image_url ? (
-              <div className="aspect-[2/3] rounded-2xl overflow-hidden shadow-lg">
+              <div className="aspect-[2/3] rounded-xl overflow-hidden border border-border/40">
                 <img
                   src={book.cover_image_url}
                   alt={book.title}
@@ -76,8 +78,8 @@ function BookDetailPage() {
                 />
               </div>
             ) : (
-              <div className="aspect-[2/3] bg-gradient-to-br from-primary/20 to-primary/5 rounded-2xl flex items-center justify-center shadow-lg">
-                <span className="text-9xl">📖</span>
+              <div className="aspect-[2/3] bg-primary/5 rounded-xl border border-border/40 flex items-center justify-center">
+                <BookOpen className="w-16 h-16 text-primary/35" />
               </div>
             )}
             {book.purchase_link && (
@@ -85,9 +87,10 @@ function BookDetailPage() {
                 href={book.purchase_link}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="w-full mt-6 inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-6 py-3 text-base font-semibold text-primary-foreground shadow-sm hover:bg-primary/95 transition-colors"
+                className="w-full mt-6 inline-flex items-center justify-center gap-2 rounded-full bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/95 active:translate-y-0 active:scale-[0.98]"
               >
-                🛒 Buy Now
+                <ShoppingCart className="w-4 h-4" />
+                Buy Now
               </a>
             )}
           </div>
@@ -105,48 +108,48 @@ function BookDetailPage() {
                 ))}
               </div>
             )}
-            <h1 className="font-heading text-4xl md:text-5xl font-bold text-foreground mb-2">{book.title}</h1>
-            {book.subtitle && <h2 className="text-xl md:text-2xl text-muted-foreground mb-4">{book.subtitle}</h2>}
-            <p className="text-xl text-primary font-semibold">by {book.author}</p>
+            <h1 className="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-foreground mb-2">{book.title}</h1>
+            {book.subtitle && <h2 className="text-lg md:text-xl text-muted-foreground mb-4">{book.subtitle}</h2>}
+            <p className="text-base text-primary font-semibold">by {book.author}</p>
           </div>
 
-          <div className="flex flex-wrap gap-6 mb-8 text-sm">
+          <div className="flex flex-wrap gap-8 mb-10 pb-8 border-b border-border/40 text-sm">
             {book.price && (
               <div>
-                <span className="text-muted-foreground block mb-1">Price</span>
-                <span className="text-3xl font-bold text-foreground">
+                <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-muted-foreground block mb-1.5">Price</span>
+                <span className="text-2xl font-semibold text-foreground">
                   {book.currency || "USD"} {book.price.toFixed(2)}
                 </span>
               </div>
             )}
             {book.isbn && (
               <div>
-                <span className="text-muted-foreground block mb-1">ISBN</span>
+                <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-muted-foreground block mb-1.5">ISBN</span>
                 <span className="font-semibold text-foreground">{book.isbn}</span>
               </div>
             )}
             {book.publication_date && (
               <div>
-                <span className="text-muted-foreground block mb-1">Published</span>
+                <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-muted-foreground block mb-1.5">Published</span>
                 <span className="font-semibold text-foreground">{book.publication_date}</span>
               </div>
             )}
             {book.page_count && (
               <div>
-                <span className="text-muted-foreground block mb-1">Pages</span>
+                <span className="text-[11px] font-semibold tracking-[0.1em] uppercase text-muted-foreground block mb-1.5">Pages</span>
                 <span className="font-semibold text-foreground">{book.page_count}</span>
               </div>
             )}
           </div>
 
-          <div className="prose prose-lg max-w-none mb-10">
-            <h3 className="text-2xl font-bold text-foreground mb-4">Description</h3>
+          <div className="prose prose-sm max-w-none mb-10">
+            <h3 className="font-heading text-xl font-semibold text-foreground mb-3">Description</h3>
             <p className="text-muted-foreground leading-relaxed">{book.description}</p>
           </div>
 
           {book.synopsis && (
-            <div className="prose prose-lg max-w-none">
-              <h3 className="text-2xl font-bold text-foreground mb-4">Synopsis</h3>
+            <div className="prose prose-sm max-w-none">
+              <h3 className="font-heading text-xl font-semibold text-foreground mb-3">Synopsis</h3>
               <p className="text-muted-foreground leading-relaxed whitespace-pre-wrap">{book.synopsis}</p>
             </div>
           )}
@@ -155,30 +158,30 @@ function BookDetailPage() {
 
       {/* Related Books */}
       {relatedBooks.length > 0 && (
-        <div className="mt-20">
-          <h3 className="font-heading text-2xl font-bold text-foreground mb-8">You may also like</h3>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
+        <div className="mt-24 pt-16 border-t border-border/40">
+          <h3 className="font-heading text-2xl font-semibold text-foreground mb-8">You may also like</h3>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {relatedBooks.map((relatedBook) => (
               <Link key={relatedBook.id} to={`/books/$bookId`} params={{ bookId: relatedBook.id }} className="group">
-                <div className="bg-card rounded-2xl border border-border/40 shadow-sm overflow-hidden transition-all duration-300 hover:shadow-md hover:scale-[1.02]">
+                <div className="rounded-xl border border-border/40 bg-card overflow-hidden transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border hover:shadow-[0_12px_28px_-18px_oklch(0.18_0.03_30_/_22%)]">
                   {relatedBook.cover_image_url ? (
                     <div className="aspect-[2/3] bg-muted/20 overflow-hidden">
                       <img
                         src={relatedBook.cover_image_url}
                         alt={relatedBook.title}
-                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500"
+                        className="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
                       />
                     </div>
                   ) : (
-                    <div className="aspect-[2/3] bg-gradient-to-br from-primary/20 to-primary/5 flex items-center justify-center">
-                      <span className="text-4xl">📖</span>
+                    <div className="aspect-[2/3] bg-primary/5 flex items-center justify-center">
+                      <BookOpen className="w-8 h-8 text-primary/35" />
                     </div>
                   )}
                   <div className="p-4">
-                    <h4 className="font-heading text-base font-bold text-foreground mb-1 line-clamp-2">
+                    <h4 className="font-heading text-sm font-semibold text-foreground mb-1 line-clamp-2">
                       {relatedBook.title}
                     </h4>
-                    <p className="text-sm text-muted-foreground">{relatedBook.author}</p>
+                    <p className="text-xs text-muted-foreground">{relatedBook.author}</p>
                   </div>
                 </div>
               </Link>

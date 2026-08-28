@@ -88,28 +88,28 @@ function PillarsPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <section className="py-20 bg-primary text-primary-foreground">
+      <section className="py-24 md:py-28 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold mb-6">12 Pillars of Faith</h1>
-          <p className="text-lg opacity-90 leading-relaxed">
+          <h1 className="font-heading text-4xl md:text-5xl font-semibold tracking-tight mb-6">12 Pillars of Faith</h1>
+          <p className="text-base md:text-lg opacity-85 leading-relaxed">
             God commissioned us with the ministry of the Word of Faith to preach it to all generations and liberate the world from all oppressions of the devil.
           </p>
         </div>
       </section>
 
-      <section className="py-16 md:py-24">
+      <section className="py-24 md:py-28">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {pillars.map((pillar, index) => (
-              <div key={pillar.title} className="bg-card rounded-2xl overflow-hidden border border-border/50 shadow-sm hover:shadow-md transition-all group">
+              <div key={pillar.title} className="rounded-xl overflow-hidden border border-border/40 bg-card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border group">
                 <div className="aspect-video overflow-hidden relative">
                   <img src={pillar.image} alt={pillar.title} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
-                  <div className="absolute top-4 left-4 bg-primary text-primary-foreground w-10 h-10 rounded-full flex items-center justify-center font-bold shadow-lg">
+                  <div className="absolute top-4 left-4 bg-card text-foreground w-9 h-9 rounded-full flex items-center justify-center font-heading font-semibold text-sm">
                     {index + 1}
                   </div>
                 </div>
                 <div className="p-6">
-                  <h3 className="font-heading text-xl font-bold text-foreground mb-3 group-hover:text-primary transition-colors">{pillar.title}</h3>
+                  <h3 className="font-heading text-lg font-semibold text-foreground mb-2.5">{pillar.title}</h3>
                   <p className="text-muted-foreground text-sm leading-relaxed italic">
                     {pillar.text}
                   </p>

@@ -52,37 +52,37 @@ function BranchesPage() {
 
   return (
     <div className="bg-background min-h-screen">
-      <section className="py-20 bg-primary text-primary-foreground">
+      <section className="py-24 md:py-28 bg-primary text-primary-foreground">
         <div className="max-w-4xl mx-auto px-4 text-center">
-          <h1 className="font-heading text-4xl md:text-5xl font-bold mb-6">Tanzania Branches</h1>
-          <p className="text-lg opacity-90 leading-relaxed">
+          <h1 className="font-heading text-4xl md:text-5xl font-semibold tracking-tight mb-6">Tanzania Branches</h1>
+          <p className="text-base md:text-lg opacity-85 leading-relaxed">
             Locate a Winners Chapel International branch near you in Tanzania.
           </p>
         </div>
       </section>
 
-      <section className="py-16 md:py-24">
+      <section className="py-24 md:py-28">
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="space-y-8">
+          <div className="space-y-6">
             {branches.map((branch) => (
-              <div key={branch.name} className="bg-card rounded-2xl p-8 border border-border/50 shadow-sm hover:shadow-md transition-all">
-                <h2 className="font-heading text-2xl font-bold text-foreground mb-4">{branch.name}</h2>
+              <div key={branch.name} className="rounded-xl p-8 border border-border/40 transition-all duration-200 ease-out hover:border-border">
+                <h2 className="font-heading text-xl font-semibold text-foreground mb-5">{branch.name}</h2>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
-                    <h3 className="text-gold font-bold uppercase tracking-widest text-xs mb-2">Location</h3>
-                    <p className="text-muted-foreground">{branch.location}</p>
-                    
+                    <h3 className="text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-2">Location</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{branch.location}</p>
+
                     {branch.contact && (
                       <div className="mt-4">
-                        <h3 className="text-gold font-bold uppercase tracking-widest text-xs mb-2">Contact</h3>
+                        <h3 className="text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-2">Contact</h3>
                         <p className="text-sm text-muted-foreground">Email: {branch.contact.email}</p>
                         <p className="text-sm text-muted-foreground">Phone: {branch.contact.phone}</p>
                       </div>
                     )}
                   </div>
                   <div>
-                    <h3 className="text-gold font-bold uppercase tracking-widest text-xs mb-2">Service Times</h3>
-                    <p className="text-muted-foreground leading-relaxed">{branch.services}</p>
+                    <h3 className="text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-2">Service Times</h3>
+                    <p className="text-sm text-muted-foreground leading-relaxed">{branch.services}</p>
                   </div>
                 </div>
               </div>

@@ -55,29 +55,30 @@ function AboutPage() {
   return (
     <div className="bg-background min-h-screen">
       {/* Hero Section */}
-      <section className="py-20 md:py-28 bg-primary text-primary-foreground relative overflow-hidden">
+      <section className="py-24 md:py-28 bg-primary text-primary-foreground relative overflow-hidden">
         <div className="absolute inset-0 opacity-10">
           <img src={bishopOyedepo} alt="" className="w-full h-full object-cover" />
         </div>
         <div className="max-w-5xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
-          <h1 className="font-heading text-4xl md:text-6xl font-bold mb-6">Our Mandate & History</h1>
-          <p className="text-xl opacity-90 max-w-3xl mx-auto leading-relaxed">
+          <h1 className="font-heading text-4xl md:text-6xl font-semibold tracking-tight mb-6">Our Mandate &amp; History</h1>
+          <p className="text-lg md:text-xl opacity-90 max-w-3xl mx-auto leading-relaxed">
             Raising a new generation of champions through the preaching of the Word of Faith.
           </p>
         </div>
       </section>
 
       {/* Commission Mandate Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-24 md:py-28">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="order-2 lg:order-1">
-              <span className="text-gold font-bold uppercase tracking-widest text-sm mb-4 block">The Commission</span>
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-6">COMMISSION MANDATE</h2>
-              <blockquote className="border-l-4 border-gold pl-6 py-2 mb-8 italic text-xl text-muted-foreground leading-relaxed">
-                "THE HOUR HAS COME TO LIBERATE THE WORLD FROM ALL OPPRESSIONS OF THE DEVIL THROUGH THE PREACHING OF THE WORD OF FAITH, AND I AM SENDING YOU TO UNDERTAKE THIS TASK."
+              <span className="block text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-5">The Commission</span>
+              <h2 className="font-heading text-3xl font-semibold text-foreground mb-6">Commission Mandate</h2>
+              <blockquote className="font-heading italic text-xl md:text-[1.4rem] font-medium leading-[1.5] text-foreground mb-3">
+                "The hour has come to liberate the world from all oppressions of the devil through the preaching of the word of faith, and I am sending you to undertake this task."
               </blockquote>
-              <div className="space-y-4 text-muted-foreground leading-relaxed">
+              <div className="w-10 h-0.5 bg-primary mb-8"></div>
+              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
                 <p>
                   Our Mandate speaks of liberation in all facets of human existence. We focus mainly on destinies that have been afflicted, battered, beaten, tattered, deformed and subsequently in groaning and agonies, as a result of pains, pangs and crying.
                 </p>
@@ -97,16 +98,16 @@ function AboutPage() {
       </section>
 
       {/* Pastoral Mandate Section */}
-      <section className="py-16 md:py-24 bg-warm/30">
+      <section className="py-24 md:py-28 bg-warm/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
             <div className="flex justify-center">
               <img src={bishopOyedepo} alt="Bishop David Oyedepo" className="rounded-2xl shadow-xl max-w-full h-auto" />
             </div>
             <div>
-              <span className="text-gold font-bold uppercase tracking-widest text-sm mb-4 block">Global Growth</span>
-              <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-6">PASTORAL MANDATE</h2>
-              <div className="space-y-4 text-muted-foreground leading-relaxed">
+              <span className="block text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-5">Global Growth</span>
+              <h2 className="font-heading text-3xl font-semibold text-foreground mb-6">Pastoral Mandate</h2>
+              <div className="space-y-4 text-sm text-muted-foreground leading-relaxed">
                 <p>
                   The understanding of the liberation commission is that, it will basically be an outreach operation. The Presiding Bishop could not imagine any church connection with the commission. Our understanding then was that there was no kind of church that was not in existence and that what was needed was to ignite the fire of the Holy Ghost in existing churches.
                 </p>
@@ -120,11 +121,11 @@ function AboutPage() {
       </section>
 
       {/* History Timeline Section */}
-      <section className="py-16 md:py-24">
+      <section className="py-24 md:py-28">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">History of Winners Chapel</h2>
-            <div className="h-1 w-20 bg-gold mx-auto"></div>
+            <h2 className="font-heading text-3xl font-semibold text-foreground mb-4">History of Winners Chapel</h2>
+            <div className="h-0.5 w-10 bg-primary mx-auto"></div>
           </div>
           <div className="space-y-12">
             {[
@@ -151,13 +152,13 @@ function AboutPage() {
             ].map((item, index) => (
               <div key={index} className="flex gap-6 md:gap-10">
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-bold text-sm shrink-0 shadow-lg">
+                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-[13px] shrink-0">
                     {item.year}
                   </div>
-                  {index !== 4 && <div className="w-0.5 h-full bg-border mt-2"></div>}
+                  {index !== 4 && <div className="w-px h-full bg-border mt-2"></div>}
                 </div>
                 <div className="pb-8">
-                  <p className="text-lg text-muted-foreground leading-relaxed pt-2">
+                  <p className="text-base text-muted-foreground leading-relaxed pt-2">
                     {item.event}
                   </p>
                 </div>
@@ -168,15 +169,15 @@ function AboutPage() {
       </section>
 
       {/* Leadership Section */}
-      <section className="py-16 md:py-24 bg-muted/30">
+      <section className="py-24 md:py-28 bg-muted/30">
         <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="text-center mb-16">
-            <h2 className="font-heading text-3xl md:text-4xl font-bold text-foreground mb-4">Our Leadership</h2>
-            <p className="text-muted-foreground">The vessels of God leading this global commission.</p>
+            <h2 className="font-heading text-3xl font-semibold text-foreground mb-4">Our Leadership</h2>
+            <p className="text-sm text-muted-foreground">The vessels of God leading this global commission.</p>
           </div>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-8">
             {leadership.map((leader) => (
-              <div key={leader.name} className="bg-card rounded-2xl overflow-hidden border border-border/50 shadow-sm hover:shadow-md transition-shadow group">
+              <div key={leader.name} className="bg-card rounded-xl overflow-hidden border border-border/40 transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border group">
                 <div className="aspect-[4/5] overflow-hidden">
                   {leader.image ? (
                     <img src={leader.image} alt={leader.name} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" />
@@ -189,8 +190,8 @@ function AboutPage() {
                   )}
                 </div>
                 <div className="p-6 text-center">
-                  <h3 className="font-heading text-lg font-bold text-foreground">{leader.name}</h3>
-                  <p className="text-sm text-primary font-medium mt-1">{leader.role}</p>
+                  <h3 className="font-heading text-base font-semibold text-foreground">{leader.name}</h3>
+                  <p className="text-xs text-primary font-medium mt-1.5">{leader.role}</p>
                 </div>
               </div>
             ))}

@@ -83,14 +83,14 @@ function JoinCellPage() {
   if (success) {
     return (
       <div className="min-h-[80vh] flex items-center justify-center px-4">
-        <div className="max-w-lg mx-auto text-center bg-card p-8 rounded-2xl border border-border/40 shadow-sm">
-          <div className="w-16 h-16 bg-green-100 text-green-700 rounded-full flex items-center justify-center mx-auto mb-6">
-            <svg xmlns="http://www.w3.org/2000/svg" className="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <div className="max-w-lg mx-auto text-center bg-card p-8 rounded-xl border border-border/40">
+          <div className="w-14 h-14 bg-green-100 text-green-700 rounded-full flex items-center justify-center mx-auto mb-6">
+            <svg xmlns="http://www.w3.org/2000/svg" className="h-7 w-7" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
             </svg>
           </div>
-          <h2 className="text-2xl font-bold text-foreground mb-3">Request Submitted!</h2>
-          <p className="text-muted-foreground mb-6">
+          <h2 className="font-heading text-2xl font-semibold text-foreground mb-3">Request Submitted!</h2>
+          <p className="text-sm text-muted-foreground mb-6 leading-relaxed">
             Thank you for applying to join our home cell fellowship. Your request is now pending approval from the cell leader.
             They will contact you shortly to confirm your membership.
           </p>
@@ -103,7 +103,7 @@ function JoinCellPage() {
               setAddress("");
               setOccupation("");
             }}
-            className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition"
+            className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 active:scale-[0.98]"
           >
             Submit Another Request
           </button>
@@ -113,19 +113,19 @@ function JoinCellPage() {
   }
 
   return (
-    <div className="py-16 md:py-24">
+    <div className="py-24 md:py-28">
       <div className="max-w-2xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="text-center mb-12">
-          <span className="inline-block bg-primary/10 text-primary text-xs font-semibold px-3 py-1 rounded-full mb-4 uppercase tracking-wider">
+          <span className="block text-[11px] font-semibold tracking-[0.14em] uppercase text-primary mb-4">
             Home Cell Fellowship
           </span>
-          <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-4">Join a Home Cell Group</h1>
-          <p className="text-muted-foreground max-w-lg mx-auto mb-6">
+          <h1 className="font-heading text-3xl md:text-4xl font-semibold tracking-tight text-foreground mb-4">Join a Home Cell Group</h1>
+          <p className="text-sm text-muted-foreground max-w-lg mx-auto mb-6 leading-relaxed">
             Become part of our vibrant cell fellowship! Fill out the form below to apply for membership in a home cell group.
             Your request will be reviewed and approved by the cell leader.
           </p>
-          <div className="bg-card border border-border/40 rounded-2xl p-6 text-left shadow-sm">
-            <h3 className="font-heading text-sm font-bold text-foreground mb-3">Important Instructions for Cell Membership</h3>
+          <div className="border border-border/40 rounded-xl p-6 text-left">
+            <h3 className="font-heading text-sm font-semibold text-foreground mb-3">Important Instructions for Cell Membership</h3>
             <p className="text-xs text-muted-foreground leading-relaxed mb-3">
               All other members must join their respective groups in strict accordance with the assignments and instructions issued by the home cell leaders.
             </p>
@@ -138,7 +138,7 @@ function JoinCellPage() {
           </div>
         </div>
 
-        <div className="bg-card rounded-2xl p-6 md:p-8 border border-border/40 shadow-sm">
+        <div className="bg-card rounded-xl p-6 md:p-8 border border-border/40">
           {loading ? (
             <div className="py-12 flex items-center justify-center">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
@@ -262,7 +262,7 @@ function JoinCellPage() {
               <button
                 type="submit"
                 disabled={submitting || cells.length === 0}
-                className="w-full bg-primary text-primary-foreground py-3 rounded-lg font-semibold hover:bg-primary/90 transition disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
+                className="w-full bg-primary text-primary-foreground py-3 rounded-full font-semibold transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/90 active:translate-y-0 active:scale-[0.98] disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-y-0 flex items-center justify-center gap-2"
               >
                 {submitting ? (
                   <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-primary-foreground"></div>
