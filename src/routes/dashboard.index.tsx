@@ -3545,7 +3545,10 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
             </div>
             <div>
               <label className="block font-bold text-muted-foreground uppercase mb-1">Image URL (optional)</label>
-              <input type="text" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+              <input type="text" placeholder="https://example.com/photo.jpg" value={form.image_url} onChange={(e) => setForm({ ...form, image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+              <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">
+                Must be a direct link to an image file. A Facebook/Instagram post link won't work - open the photo itself, right-click it, and copy its image address.
+              </p>
             </div>
             <div className="md:col-span-2">
               <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Event</button>
@@ -3702,7 +3705,10 @@ function SermonsTab({ sermons, refresh }: { sermons: Sermon[], refresh: () => vo
           </div>
           <div className="md:col-span-2">
             <label className="block font-bold text-muted-foreground uppercase mb-1">Video URL (optional)</label>
-            <input type="text" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            <input type="text" placeholder="https://youtube.com/watch?v=... or any link" value={form.video_url} onChange={(e) => setForm({ ...form, video_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">
+              YouTube or Vimeo links play right on the site. Any other link (Instagram, Facebook, etc.) opens in a new tab instead - those platforms don't allow embedding elsewhere.
+            </p>
           </div>
           <div className="md:col-span-2">
             <button type="submit" className="rounded-lg bg-primary px-4 py-2 text-xs font-semibold text-primary-foreground hover:bg-primary/90 transition-colors">Post Sermon</button>
@@ -3809,7 +3815,10 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
           </div>
           <div>
             <label className="block font-bold text-muted-foreground uppercase mb-1">Cover Image URL (optional)</label>
-            <input type="text" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            <input type="text" placeholder="https://example.com/cover.jpg" value={form.cover_image_url} onChange={(e) => setForm({ ...form, cover_image_url: e.target.value })} className="w-full rounded-lg border border-border px-3 py-2 bg-card text-foreground" />
+            <p className="mt-1 text-[10px] normal-case font-normal text-muted-foreground">
+              Must be a direct link to an image file. A Facebook/Instagram post link won't work - open the photo itself, right-click it, and copy its image address.
+            </p>
           </div>
           <div className="grid grid-cols-2 gap-2">
             <div>

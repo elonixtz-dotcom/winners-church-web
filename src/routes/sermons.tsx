@@ -2,6 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import churchLogo from "@/assets/winners-logo.png";
 import { db, Sermon } from "@/lib/db";
+import { getEmbeddableVideoUrl } from "@/lib/mediaEmbed";
+import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
+import { Play, ExternalLink } from "lucide-react";
 
 export const Route = createFileRoute("/sermons")({
   head: () => ({
@@ -18,6 +21,7 @@ function SermonsPage() {
   const [sermons, setSermons] = useState<Sermon[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [loading, setLoading] = useState(true);
+  const [playingSermon, setPlayingSermon] = useState<Sermon | null>(null);
 
   useEffect(() => {
     const fetchSermons = async () => {
@@ -147,14 +151,22 @@ function SermonsPage() {
                   {/* Play Trigger */}
                   <div className="mt-8 border-t border-border/20 pt-4 flex items-center justify-between">
                     <span className="text-[10px] font-semibold text-muted-foreground">Winners Chapel Intl.</span>
-                    {sermon.video_url ? (
+                    {sermon.video_url && getEmbeddableVideoUrl(sermon.video_url) ? (
+                      <button
+                        onClick={() => setPlayingSermon(sermon)}
+                        className="inline-flex items-center gap-1 bg-primary text-primary-foreground text-[11px] font-bold px-4 py-1.5 rounded-full transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/95 active:translate-y-0 active:scale-[0.98] cursor-pointer"
+                      >
+                        <Play className="w-3 h-3 fill-current" />
+                        Watch Sermon
+                      </button>
+                    ) : sermon.video_url ? (
                       <a
                         href={sermon.video_url}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 bg-primary text-primary-foreground text-[11px] font-bold px-4 py-1.5 rounded-full transition-all duration-200 ease-out hover:-translate-y-0.5 hover:bg-primary/95 active:translate-y-0 active:scale-[0.98]"
                       >
-                        <svg className="w-3 h-3 fill-current" viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>
+                        <ExternalLink className="w-3 h-3" />
                         Watch Sermon
                       </a>
                     ) : (
@@ -170,6 +182,23 @@ function SermonsPage() {
           )}
         </div>
       </section>
+
+      <Dialog open={!!playingSermon} onOpenChange={(open) => !open && setPlayingSermon(null)}>
+        <DialogContent className="max-w-3xl p-0 overflow-hidden bg-black border-none">
+          <DialogTitle className="sr-only">{playingSermon?.title}</DialogTitle>
+          {playingSermon && (
+            <div className="aspect-video">
+              <iframe
+                src={getEmbeddableVideoUrl(playingSermon.video_url || "") || ""}
+                title={playingSermon.title}
+                className="w-full h-full"
+                allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                allowFullScreen
+              />
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </>
   );
 }

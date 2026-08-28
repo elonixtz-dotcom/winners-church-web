@@ -19,6 +19,7 @@ function EventsPage() {
   const [events, setEvents] = useState<ChurchEvent[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeFilter, setActiveFilter] = useState<"upcoming" | "past">("upcoming");
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const fetchEvents = async () => {
@@ -126,10 +127,11 @@ function EventsPage() {
                   >
                     <div>
                       <div className="relative aspect-video bg-muted overflow-hidden">
-                        {event.image_url ? (
+                        {event.image_url && !brokenImages.has(event.id) ? (
                           <img
                             src={event.image_url}
                             alt={event.title}
+                            onError={() => setBrokenImages((prev) => new Set(prev).add(event.id))}
                             className="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.035]"
                           />
                         ) : (

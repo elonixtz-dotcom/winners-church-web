@@ -11,6 +11,7 @@ function BooksPage() {
   const [books, setBooks] = useState<Book[]>([])
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState("")
+  const [brokenCovers, setBrokenCovers] = useState<Set<string>>(new Set())
 
   useEffect(() => {
     const loadBooks = async () => {
@@ -74,11 +75,12 @@ function BooksPage() {
           {filteredBooks.map((book) => (
             <Link key={book.id} to={`/books/$bookId`} params={{ bookId: book.id }} className="group">
               <div className="rounded-xl border border-border/40 bg-card overflow-hidden transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border hover:shadow-[0_12px_28px_-18px_oklch(0.18_0.03_30_/_22%)]">
-                {book.cover_image_url ? (
+                {book.cover_image_url && !brokenCovers.has(book.id) ? (
                   <div className="aspect-[2/3] bg-muted/20 overflow-hidden">
                     <img
                       src={book.cover_image_url}
                       alt={book.title}
+                      onError={() => setBrokenCovers((prev) => new Set(prev).add(book.id))}
                       className="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-105"
                     />
                   </div>

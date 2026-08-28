@@ -24,8 +24,8 @@ const heroPhotos = [
 
 const serviceTimes = [
   { time: "6:30", period: "AM", label: "First Service", desc: "A fresh early morning encounter in God's presence" },
-  { time: "8:20", period: "AM", label: "Second Service", desc: "A glorious mid-morning praise and teaching service" },
-  { time: "10:15", period: "AM", label: "Third Service", desc: "A late-morning breakthrough celebration service" },
+  { time: "8:15", period: "AM", label: "Second Service", desc: "A glorious mid-morning praise and teaching service" },
+  { time: "10:05", period: "AM", label: "Third Service", desc: "A late-morning breakthrough celebration service" },
 ];
 
 const midweekServices = [
@@ -38,6 +38,7 @@ function HomePage() {
   const [announcements, setAnnouncements] = useState<Announcement[]>([]);
   const [loading, setLoading] = useState(true);
   const [heroIndex, setHeroIndex] = useState(0);
+  const [brokenImages, setBrokenImages] = useState<Set<string>>(new Set());
 
   useEffect(() => {
     const interval = setInterval(() => {
@@ -191,10 +192,11 @@ function HomePage() {
               {events.map((evt) => (
                 <div key={evt.id} className="group rounded-xl overflow-hidden border border-border/40 bg-card transition-all duration-200 ease-out hover:-translate-y-0.5 hover:border-border hover:shadow-[0_12px_28px_-18px_oklch(0.18_0.03_30_/_22%)]">
                   <div className="relative aspect-video bg-muted overflow-hidden">
-                    {evt.image_url ? (
+                    {evt.image_url && !brokenImages.has(evt.id) ? (
                       <img
                         src={evt.image_url}
                         alt={evt.title}
+                        onError={() => setBrokenImages((prev) => new Set(prev).add(evt.id))}
                         className="w-full h-full object-cover transition-transform duration-500 ease-[cubic-bezier(0.16,1,0.3,1)] group-hover:scale-[1.035]"
                       />
                     ) : (
