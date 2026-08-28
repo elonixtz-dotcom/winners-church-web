@@ -78,7 +78,7 @@ function ContactPage() {
                   </div>
                   <div>
                     <h3 className="font-semibold text-foreground">Phone & Email</h3>
-                    <p className="text-muted-foreground">+255 22 284 2863</p>
+                    <p className="text-muted-foreground">+255 762 330 791</p>
                     <a href="mailto:domifaith2002@yahoo.com" className="text-primary hover:underline text-sm">domifaith2002@yahoo.com</a>
                   </div>
                 </div>
@@ -90,7 +90,7 @@ function ContactPage() {
                   <div>
                     <h3 className="font-semibold text-foreground">Service Times</h3>
                     <p className="text-muted-foreground">
-                      Sunday: 6:30 AM, 8:20 AM &amp; 10:15 AM<br />
+                      Sunday: 6:30 AM, 8:15 AM &amp; 10:05 AM<br />
                       Wednesday: 5:00 PM<br />
                       Covenant Hour of Prayer: Mon-Fri @ 5:50 AM
                     </p>

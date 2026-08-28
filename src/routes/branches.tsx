@@ -17,9 +17,9 @@ function BranchesPage() {
       location: "Ukonga Banana, opposite Minazi Mirefu Primary School, Dar es Salaam",
       contact: {
         email: "domifaith2002@yahoo.com",
-        phone: "+255 22 284 2863",
+        phone: "+255 762 330 791",
       },
-      services: "Covenant Hour of Prayer: Weekdays @ 5:30 AM | Mid-week: Wednesdays @ 5:00 PM | Sundays: 6:30 AM, 8:20 AM & 10:05 AM",
+      services: "Covenant Hour of Prayer: Weekdays @ 5:30 AM | Mid-week: Wednesdays @ 5:00 PM | Sundays: 6:30 AM, 8:15 AM & 10:05 AM",
     },
     {
       name: "Winners Chapel International - Salasala",

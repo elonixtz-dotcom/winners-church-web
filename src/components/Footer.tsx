@@ -13,7 +13,7 @@ export default function Footer() {
             </p>
             <div className="mt-4 text-sm text-background/70 space-y-1">
               <p>Email: <a href="mailto:domifaith2002@yahoo.com" className="hover:text-gold transition-colors">domifaith2002@yahoo.com</a></p>
-              <p>Phone: +255 22 284 2863</p>
+              <p>Phone: +255 762 330 791</p>
             </div>
             <div className="mt-4 flex gap-4">
               <a href="https://www.facebook.com/kanisala.washindi" target="_blank" rel="noopener noreferrer" className="text-background/50 hover:text-gold transition-colors">
@@ -74,7 +74,7 @@ export default function Footer() {
             <h4 className="font-heading text-lg font-semibold mb-4 text-primary-foreground">Service Times</h4>
             <div className="text-sm text-background/70 space-y-2">
               <p className="font-semibold text-gold">Sunday Services:</p>
-              <p className="pl-2">6:30 AM, 8:20 AM &amp; 10:15 AM</p>
+              <p className="pl-2">6:30 AM, 8:15 AM &amp; 10:05 AM</p>
               <p className="font-semibold text-gold">Midweek Service:</p>
               <p className="pl-2">Wednesday: 5:00 PM</p>
               <p className="font-semibold text-gold">Covenant Hour of Prayer:</p>
