@@ -317,7 +317,7 @@ function HomePage() {
               ))}
             </div>
           </div>
-          <div className="border-l border-border/40 pl-9">
+          <div className="border-t md:border-t-0 md:border-l border-border/40 pt-9 md:pt-0 md:pl-9">
             <blockquote className="font-heading text-xl md:text-2xl font-medium italic leading-relaxed text-foreground">
               "But upon mount Zion shall be deliverance, and there shall be holiness; and the house of Jacob shall possess their possessions."
             </blockquote>

@@ -152,7 +152,7 @@ function AboutPage() {
             ].map((item, index) => (
               <div key={index} className="flex gap-6 md:gap-10">
                 <div className="flex flex-col items-center">
-                  <div className="w-12 h-12 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-[13px] shrink-0">
+                  <div className="min-w-12 h-12 px-2.5 rounded-full bg-primary text-primary-foreground flex items-center justify-center font-semibold text-xs whitespace-nowrap shrink-0">
                     {item.year}
                   </div>
                   {index !== 4 && <div className="w-px h-full bg-border mt-2"></div>}
