@@ -110,7 +110,7 @@ function DashboardHome() {
 
         if (user.role === "super_admin" || user.role === "church_admin" || user.role === "district_pastor" || user.role === "zone_pastor") {
           // Load pastor/admin data
-          const [members, reports, visitors, meetings, newConverts, prayers, wallPrayers, followUps, testimonies, offerings, requests, contactMessages, books, attendance] = await Promise.all([
+          const [members, reports, visitors, meetings, newConverts, prayers, wallPrayers, followUps, testimonies, offerings, requests, contactMessages, books, attendance, events, announcements, sermons] = await Promise.all([
             db.getMembers(),
             db.getWeeklyReports(),
             db.getVisitors(),
@@ -123,11 +123,14 @@ function DashboardHome() {
             db.getOfferings(),
             db.getCellMembershipRequests(),
             db.getContactMessages(),
-            db.getBooks(),
+            db.getAllBooksForAdmin(),
             db.getAllAttendance(),
+            db.getEvents(),
+            db.getAnnouncements(),
+            db.getSermons(),
           ]);
 
-          setPastorData({ members, reports, visitors, meetings, newConverts, prayers, wallPrayers, followUps, testimonies, offerings, requests, contactMessages, books, attendance });
+          setPastorData({ members, reports, visitors, meetings, newConverts, prayers, wallPrayers, followUps, testimonies, offerings, requests, contactMessages, books, attendance, events, announcements, sermons });
         } else if (user.role === "media_team") {
           // Load media data
           const [events, announcements, sermons, books] = await Promise.all([
@@ -335,6 +338,7 @@ function PastorDashboard({ activeTab, user, cells, zones, districts, users, data
     members: allMembers, reports: allReports, visitors: allVisitors, meetings: allMeetings,
     newConverts: allNewConverts, prayers, wallPrayers, followUps, testimonies, offerings: allOfferings,
     requests: allRequests, contactMessages, books, attendance: allAttendance,
+    events, announcements, sermons,
   } = data;
 
   // Zone/district pastors get a scope computed client-side from the org hierarchy
@@ -430,6 +434,9 @@ function PastorDashboard({ activeTab, user, cells, zones, districts, users, data
       {activeTab === "testimonies" && <TestimoniesTab testimonies={testimonies} cells={scopedCells} />}
       {activeTab === "offerings" && <OfferingsTab offerings={offerings} cells={scopedCells} />}
       {activeTab === "reports" && <ReportsTab reports={reports} cells={scopedCells} />}
+      {activeTab === "events" && <EventsTab events={events} refresh={refresh} />}
+      {activeTab === "announcements" && <AnnouncementsTab announcements={announcements} refresh={refresh} />}
+      {activeTab === "sermons" && <SermonsTab sermons={sermons} refresh={refresh} />}
       {activeTab === "books" && <BooksTab books={books} refresh={refresh} />}
     </>
   );
