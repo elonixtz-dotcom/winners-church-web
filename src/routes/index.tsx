@@ -79,7 +79,7 @@ function HomePage() {
             key={src}
             src={src}
             alt="Worship at Winners Chapel Dar es Salaam"
-            className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ease-in-out ${
+            className={`absolute inset-0 w-full h-full object-cover object-top transition-opacity duration-1000 ease-in-out ${
               i === heroIndex ? "opacity-100" : "opacity-0"
             }`}
           />
