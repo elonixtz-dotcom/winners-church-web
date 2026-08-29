@@ -3604,7 +3604,12 @@ function EventsTab({ events, refresh }: { events: ChurchEvent[], refresh: () => 
               </button>
               {form.image_url && !uploading && (
                 <div className="mt-2 flex items-center gap-2">
-                  <img src={form.image_url} alt="" className="h-12 w-12 rounded object-cover border border-border" />
+                  <img
+                    src={form.image_url}
+                    alt=""
+                    onError={(e) => { e.currentTarget.style.display = "none"; }}
+                    className="h-12 w-12 rounded object-cover border border-border"
+                  />
                   <button type="button" onClick={() => setForm({ ...form, image_url: "" })} className="text-[10px] font-semibold text-destructive normal-case">Remove</button>
                 </div>
               )}
@@ -3827,6 +3832,7 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
     price: "", currency: "TZS", categories: "",
   });
   const [uploading, setUploading] = useState(false);
+  const [brokenCovers, setBrokenCovers] = useState<Set<string>>(new Set());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const startEdit = (book: Book) => {
@@ -3956,7 +3962,12 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
             </button>
             {form.cover_image_url && !uploading && (
               <div className="mt-2 flex items-center gap-2">
-                <img src={form.cover_image_url} alt="" className="h-12 w-9 rounded object-cover border border-border" />
+                <img
+                  src={form.cover_image_url}
+                  alt=""
+                  onError={(e) => { e.currentTarget.style.display = "none"; }}
+                  className="h-12 w-9 rounded object-cover border border-border"
+                />
                 <button type="button" onClick={() => setForm({ ...form, cover_image_url: "" })} className="text-[10px] font-semibold text-destructive normal-case">Remove</button>
               </div>
             )}
@@ -3988,8 +3999,13 @@ function BooksTab({ books, refresh }: { books: Book[], refresh: () => void }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
         {books.map((b) => (
           <div key={b.id} className="p-4 bg-muted/10 rounded-xl border border-border/20 flex gap-4">
-            {b.cover_image_url ? (
-              <img src={b.cover_image_url} alt={b.title} className="w-20 h-28 object-cover rounded" />
+            {b.cover_image_url && !brokenCovers.has(b.id) ? (
+              <img
+                src={b.cover_image_url}
+                alt={b.title}
+                onError={() => setBrokenCovers((prev) => new Set(prev).add(b.id))}
+                className="w-20 h-28 object-cover rounded"
+              />
             ) : (
               <div className="w-20 h-28 bg-primary/10 rounded flex items-center justify-center">
                 <BookOpen className="w-8 h-8 text-primary/40" />
